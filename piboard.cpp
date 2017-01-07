@@ -33,9 +33,6 @@
 
 //#define DEBUGME
 
-SYSTEM_THREAD(ENABLED);
-SYSTEM_MODE(SEMI_AUTOMATIC);
-
 
 // allow us to use itoa() in this scope
 extern char* itoa(int a, char* buffer, unsigned char radix);
@@ -314,25 +311,12 @@ void setup() {
 
 	unsigned long resetTime;
 
-	// !!!!! Add timeout code here if can't connect
-	Spark.connect();
-	while (!Spark.connected()) Spark.process();
 	
-	// May need to move to loop() if can't connect
-	Spark.publish("RGBPongClock", RGBPCversion, 60, PRIVATE);
-	Spark.process();	// Force processing of Spark.publish()
-	// ************************************************
 
 	
 #if defined (DEBUGME)
 	Serial.begin(115200);
 #endif
-
-	Spark.variable("city", city, STRING);	// !!! FOR DEBUGGING ONLY !!!
-	Spark.variable("cmode", &clock_mode, INT);
-	
-	Spark.function("setMode", setMode);		// Receive mode commands
-	Spark.subscribe(HOOK_RESP, processWeather, MY_DEVICES);	// Lets listen for the hook response
 	
 	
 	// !!!! May need to copy to loop() if disconnect/connect
@@ -392,7 +376,7 @@ void loop()
     // Add wifi/cloud connection retry code here
     // !!!  Add code for re-syncing time every 24 hrs  !!!
     if ((millis() - updateCTime) > (24UL * 60UL * 60UL * 1000UL)) {
-      Spark.syncTime();
+//      Spark.syncTime();
       updateCTime = millis();
     }
 
@@ -620,7 +604,7 @@ void quickWeather(){
 		delay(1000);
 	}
 }
-
+/*
 void getWeather(){
 	DEBUGpln("in getWeather");
 	char vars[90];
@@ -636,11 +620,11 @@ void getWeather(){
 	weatherGood = false;
 	// publish the event with city data that will trigger the webhook
 	//Spark.publish(HOOK_PUB, city, 60, PRIVATE);
-	Spark.publish(HOOK_PUB, vars, 60, PRIVATE);
+//	Spark.publish(HOOK_PUB, vars, 60, PRIVATE);
 
 	unsigned long wait = millis();
-	while(!weatherGood && (millis() < wait + 5000UL))	//wait for subscribe to kick in or 5 secs
-		Spark.process();
+//	while(!weatherGood && (millis() < wait + 5000UL))	//wait for subscribe to kick in or 5 secs
+//		Spark.process();
 
 	if (!weatherGood) {
 		DEBUGpln("Weather update failed");
@@ -651,7 +635,7 @@ void getWeather(){
 	else
 		badWeatherCall = 0;
 }
-
+*/
 
 void processWeather(const char *name, const char *data){
 	weatherGood = true;
@@ -862,7 +846,7 @@ void drawWeatherIcon(uint8_t x, uint8_t y, int id){
 			}
 		} 
 		matrix.swapBuffers(false);
-		Spark.process();	//Give the background process some lovin'
+//		Spark.process();	//Give the background process some lovin'
 		delay(( 50 -( intensity * 10 )) < 0 ? 0: 50-intensity*10);
 	}
 }
@@ -879,7 +863,7 @@ void scrollBigMessage(char *m){
 		matrix.print(m);
 		matrix.swapBuffers(false);
 		delay(50);
-		Spark.process();
+//		Spark.process();
 	}
 
 }
@@ -899,7 +883,7 @@ void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,uint8_t bottom
 		drawString(i,9,bottom, bottom_font_size, bottom_color);
 		matrix.swapBuffers(false);
 		delay(50);
-		Spark.process();
+//		Spark.process();
 	}
 
 }
@@ -1372,7 +1356,7 @@ void pong(){
 			restart = 1; 
 		}
 
-		Spark.process();	//Give the background process some lovin'
+//		Spark.process();	//Give the background process some lovin'
 		delay(40);
 		matrix.swapBuffers(false);
 	} 
@@ -1515,7 +1499,7 @@ void normal_clock()
 		if(c4==0) lastMinBuffer[1]=buffer[1];
 
 		matrix.swapBuffers(false); 
-		Spark.process();	//Give the background process some lovin'
+//		Spark.process();	//Give the background process some lovin'
 	}
 }
 
@@ -1731,7 +1715,7 @@ void word_clock() {
 			drawString(offset_bot,(lenmid>1?10:8),str_bot,(lenbot<6?53:51),matrix.Color333(0,5,1));    
 			matrix.swapBuffers(false);
 		}
-		Spark.process();	//Give the background process some lovin'
+//		Spark.process();	//Give the background process some lovin'
 		delay (50); 
 	}
 }
@@ -1890,7 +1874,7 @@ void jumble() {
 					if (mode_changed == 1)
 					return;
 				}
-				Spark.process();//Give the background process some lovin'
+//				Spark.process();//Give the background process some lovin'
 			}
 		}
 		delay(50);
@@ -2084,7 +2068,7 @@ void flashing_cursor(byte xpos, byte ypos, byte cursor_width, byte cursor_height
 		if (repeats > 0) {
 			delay(400); 
 		}
-		Spark.process();	//Give the background process some lovin'
+//		Spark.process();	//Give the background process some lovin'
 	}
 }
 
@@ -2349,7 +2333,7 @@ void spectrumDisplay(){
 
 		if(++colCount >= 10) colCount = 0;
 		
-		Spark.process();	//Give the background process some lovin'
+//		Spark.process();	//Give the background process some lovin'
 	}
 
 #endif
@@ -2441,7 +2425,7 @@ void plasma()
 			
 			slowFrameRate = millis();
 		}
-		Spark.process();	//Give the background process some lovin'
+//		Spark.process();	//Give the background process some lovin'
 		delay(30);
 	}
 }
@@ -2481,7 +2465,7 @@ void marquee()
 		
 		delay(50);
 		
-		Spark.process();
+//		Spark.process();
 	}
 }
 
