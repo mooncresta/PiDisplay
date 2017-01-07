@@ -13,3 +13,4 @@ https://github.com/hzeller/rpi-rgb-led-matrix
 
 Target 32x32 Matrix LED running on PiZero
 
+# WORK IN PROGRESS
