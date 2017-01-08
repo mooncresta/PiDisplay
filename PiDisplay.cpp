@@ -7,26 +7,19 @@
 **      Nick's LED Projects
 **  https://123led.wordpress.com/about/
 **  
-**  Videos of the clock in action:
-**  https://vine.co/v/hwML6OJrBPw
-**  https://vine.co/v/hgKWh1KzEU0
-**  https://vine.co/v/hgKz5V0jrFn
-**  I run this on a Mega 2560, your milage on other chips may vary,
-**  Can definately free up some memory if the bitmaps are shrunk down to size.
 **  Uses an Adafruit 16x32 RGB matrix availble from here:
 **  http://www.phenoptix.com/collections/leds/products/16x32-rgb-led-matrix-panel-by-adafruit
 **  This microphone:
 **  http://www.phenoptix.com/collections/adafruit/products/electret-microphone-amplifier-max4466-with-adjustable-gain-by-adafruit-1063
 **  a DS1307 RTC chip (not sure where I got that from - was a spare)
-**  and an Ethernet Shield
-**  http://hobbycomponents.com/index.php/dvbd/dvbd-ardu/ardu-shields/2012-ethernet-w5100-network-shield-for-arduino-uno-mega-2560-1280-328.html
 ** 
 */
 
 
-//#include "Adafruit_GFX.h"   // Core graphics library
+//#include "Adafruit_mfGFX.h"   // Core graphics library
 //#include "RGBmatrixPanel.h" // Hardware-specific library
 #include "led-matrix.h" // Hardware-specific library
+#include "graphics.h"
 #include "fix_fft.h"
 #include "blinky.h"
 #include "font3x5.h"
@@ -36,29 +29,29 @@
 #include <unistd.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <signal.h>
+#include "bridge.h"
+#include "trng.h"
 
 using rgb_matrix::GPIO;
 using rgb_matrix::RGBMatrix;
+using rgb_matrix::Color;
 using rgb_matrix::Canvas;
+using rgb_matrix::Font;
 using namespace std;
 
-//#define DEBUGME
+#define DEBUGME
 
 
 // allow us to use itoa() in this scope
 extern char* itoa(int a, char* buffer, unsigned char radix);
 
-
 #define		RGBPCversion	"V1.0"
 
-#ifdef DEBUGME
-//	#define DEBUGp(message)		Serial.print(message)
-//	#define DEBUGpln(message)	Serial.println(message)
-#else
-	#define DEBUGp(message)
-	#define DEBUGpln(message)
-#endif
+#define DEBUG(message) printf(message)
+#define DEBUGp(message) printf(message)
+#define DEBUGpln(message)
 
 /*
 // Define RGB matrix panel GPIO pins 
@@ -114,8 +107,33 @@ extern char* itoa(int a, char* buffer, unsigned char radix);
 
 
 
+// Colors 4/4/4
+struct colourMap {
+char *colour;
+int r,g,b;
+};
+#define C_RED 0
+#define C_LIME 1
+#define C_BLUE 2
+#define C_YELLOW 3
+#define C_FUCHIA 4
+#define C_AQUA 5
+#define C_WHITE 6
+#define C_BLACK 7
+
+const colourMap cMap[] = {
+  {"RED", 255, 0,   0  },
+  {"LIME",0, 255,   0  },
+  {"BLUE",0, 0,   255  }, 
+  {"YELLOW",255, 255,   0  },
+  {"FUCHSIA",255, 0,   255  },
+  {"AQUA",0, 255,  255  },
+  {"WHITE",255, 255,   255  },
+  {"BLACK",0, 0,   0  }
+};
+
 /********** PACMAN definitions **********/
-#define usePACMAN			// Uncomment to enable PACMAN animations
+//#define usePACMAN			// Uncomment to enable PACMAN animations
 
 #define BAT1_X 2                         // Pong left bat x pos (this is where the ball collision occurs, the bat is drawn 1 behind these coords)
 #define BAT2_X 28        
@@ -137,11 +155,8 @@ int summerOffset = -4;
 int winterOffset = -5;
 #endif
 
-/********* USING SPECIAL MESSAGES **********/
 
-#define USING_SPECIAL_MESSAGES
-
-#ifdef USING_SPECIAL_MESSAGES
+TimeClass Time;
 
 struct SpecialDays {
   int month, day;
@@ -152,6 +167,12 @@ const SpecialDays ourHolidays[] = {  //keep message to < 40 chars
   { 1, 1, "HAPPY NEW YEAR"},
   { 2, 14, "HAPPY ST PATRICKS DAY"},
   { 4, 1, "HAPPY BIRTHDAY TOM"},
+
+/********* USING SPECIAL MESSAGES **********/
+
+#define USING_SPECIAL_MESSAGES
+
+#ifdef USING_SPECIAL_MESSAGES
   { 7, 4, "HAPPY 4TH OF JULY"},
   { 7, 15, "HAPPY ANNIVERSARY"},
   { 8, 12, "HAPPY BIRTHDAY GRAMPA"},
@@ -297,12 +318,14 @@ void cls();
 void pong();
 unsigned short pong_get_ball_endpoint(float tempballpos_x, float  tempballpos_y, float  tempballvel_x, float tempballvel_y);
 void normal_clock();
-void vectorNumber(int n, int x, int y, int color, float scale_x, float scale_y);
+void vectorNumber(int n, int x, int y, Color color, float scale_x, float scale_y);
 void word_clock();
 void jumble();
 void display_date();
 void flashing_cursor(unsigned short xpos, unsigned short ypos, unsigned short cursor_width, unsigned short cursor_height, unsigned short repeats);
 void drawString(int x, int y, char* c,uint8_t font_size, uint16_t color);
+void drawString(int x, int y, char* c,uint8_t font_size, Color color);
+void drawChar(Canvas *canvas, int x, int y, char c, uint8_t font_size, Color color);
 void drawChar(int x, int y, char c, uint8_t font_size, uint16_t color);
 int calc_font_displacement(uint8_t font_size);
 void spectrumDisplay();
@@ -318,42 +341,46 @@ time_t tmConvert_t(int YYYY, unsigned short MM, unsigned short DD, unsigned shor
 #ifdef DST_NORTH_AMERICA
   bool IsDST(int dayOfMonth, int month, int dayOfWeek);
 #endif
+void setup();
+void loop();
+
 
 /*************************************/
 //RGBMatrix matrix;
-struct RGBLedMatrix *matrix;
-struct LedCanvas *offscreen_canvas;
+Canvas *canvas;
+Font mFont;
 
 volatile bool interrupt_received = false;
 
 static void InterruptHandler(int signo) {
   interrupt_received = true;
+  canvas->Clear();
+  delete canvas;
+ 
+  exit(0);
 }
 
 
 int main(int argc, char *argv[]) {
 
-  struct RGBLedMatrixOptions options;
-  struct RGBLedMatrix *matrix;
-  struct LedCanvas *offscreen_canvas;
-  int width, height;
-  int x, y, i;
-
-  memset(&options, 0, sizeof(options));
-  options.rows = 32;
-  options.chain_length = 1;
-
-  /* This supports all the led commandline options. Try --led-help */
-  matrix = led_matrix_create_from_options(&options, &argc, &argv);
-  if (matrix == NULL)
+  DEBUG("In main\n");
+  RGBMatrix::Options defaults;
+  defaults.hardware_mapping = "adafruit-hat";  // or e.g. "adafruit-hat"
+  defaults.rows = 32;
+  defaults.chain_length = 1;
+  defaults.parallel = 1;
+  defaults.show_refresh_rate = false;
+  canvas = rgb_matrix::CreateMatrixFromFlags(&argc, &argv, &defaults);
+  if (canvas == NULL)
     return 1;
 
-  offscreen_canvas = led_matrix_create_offscreen_canvas(matrix);
-
-  led_canvas_get_size(offscreen_canvas, &width, &height);
-
-  fprintf(stderr, "Size: %dx%d. Hardware gpio mapping: %s\n",
-          width, height, options.hardware_mapping);
+/*
+  rgb_matrix::Font font;
+  if (!font.LoadFont(bdf_font_file)) {
+    fprintf(stderr, "Couldn't load font '%s'\n", bdf_font_file);
+    return usage(argv[0]);
+  }
+*/
 
   // It is always good to set up a signal handler to cleanly exit when we
   // receive a CTRL-C for instance. The DrawOnCanvas() routine is looking
@@ -362,40 +389,28 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, InterruptHandler);
 
   setup();
-
-  loop();
+  
+  while(true) {
+     loop();
+     sleep(10);
+  }
 
   // Animation finished. Shut down the RGB matrix.
-  led_matrix_delete(matrix);
+//  led_matrix_delete(matrix);
   
   return 0;
 }
 
 void setup() {
 
-	unsigned long resetTime;
+        DEBUG("In Setup\n");
 
 // TODO - sync RTC
 
-/*
-	// !!!! May need to copy to loop() if disconnect/connect
-	do {
-		resetTime = Time.now();        // the current time = time of last reset
-	        sleep(10);
-	} while (resetTime < 1000000 && millis() < 20000); // wait for a reasonable epoc time, but not longer than 20 seconds
-
-	if(resetTime < 1000000) 
-		DEBUGpln("Unable to sync time");
-	else
-		DEBUGpln("RTC has set been synced");  
-
-	// Needs to be set via Spark.function and store in EEPROM!!
-	Time.zone(-4);
-*/
-	matrix.begin();
-	matrix.setTextWrap(false); // Allow text to run off right edge
-	matrix.setTextSize(1);
-	matrix.setTextColor(matrix.Color333(210, 210, 210));
+//	matrix.begin();
+	setTextWrap(canvas, false); // Allow text to run off right edge
+	setTextSize(canvas, 1);
+	setTextColor(canvas,Color(210, 210, 210));
 
 #if defined useFFT
 	memset(peak, 0, sizeof(peak));
@@ -407,32 +422,34 @@ void setup() {
 	}
 #endif
 
-	randomSeed(analogRead(A7));
-	
-	//*** RESTORE CITY FROM EEPROM - IF NOT PREVIOUSLY FLASHED, STORE DEFAULT CITY
+//	randomSeed(analogRead(A7));
 
+        DEBUG("Clearing Screen\n");
+	// Clear Matrix
+        canvas->Clear();
+	
+	DEBUG("Calling Pacman\n");
 	pacMan();
+	DEBUG("Calling quick weather\n");
 	quickWeather();
 
 	clock_mode = random(0,MAX_CLOCK_MODE-1);
 	modeSwitch = millis();
 	badWeatherCall = 0;			// counts number of unsuccessful webhook calls, reset after 3 failed calls
 	updateCTime = millis();		// Reset 24hr cloud time refresh counter
+	DEBUG("Exiting Setup\n");
 }
 
 
 void loop()
 {
+  DEBUG("In loop\n");
 	
-#if defined(DST_NORTH_AMERICA) || defined(DST_CENTRAL_EUROPE)
-  Time.zone(IsDST(Time.day(), Time.month(), Time.weekday()) ? summerOffset : winterOffset);
-#endif
-
   int Power_Mode = timerEvaluate(clock_on, clock_off, Time.now());  // comment out to skip night time mode
 
   if (Power_Mode == 1)
   {
-    // Add wifi/cloud connection retry code here
+    DEBUG("Power Mode is 1\n");
     // !!!  Add code for re-syncing time every 24 hrs  !!!
     if ((millis() - updateCTime) > (24UL * 60UL * 60UL * 1000UL)) {
 //      Spark.syncTime();
@@ -445,12 +462,10 @@ void loop()
       modeSwitch = millis();
       if (clock_mode > MAX_CLOCK_MODE - 1)
         clock_mode = 0;
-      DEBUGp("Switch mode to ");
+      DEBUG("Switch mode to \n");
       DEBUGpln(clock_mode);
     }
 
-    DEBUGp("in loop ");
-    DEBUGpln(millis());
     //reset clock type clock_mode
     switch (clock_mode) {
       case 0:
@@ -492,14 +507,17 @@ void loop()
   }
   else
   {
+    DEBUG("Power Mode is NOT 1\n");
     if(mode_changed == 1)
     {
-      matrix.fillScreen(0);
-      matrix.swapBuffers(false);
+	cls();
+//TODO add back
+//      matrix.swapBuffers(false);
       mode_changed = 0;
     }
     nitelite();
   }
+  DEBUG("Leaving loop\n");
 }
 
 int setMode(string command)
@@ -562,8 +580,8 @@ int setMode(string command)
 		{
 			unsigned char tmp[20] = "";
 			int p = value.length();
-			//command.getBytes(value, 0, j+1);
-			command.getBytes(value, 0, p);
+//command.getBytes(value, 0, j+1);
+			command.copy(value, 0, p);
 			strcpy(city, "{\"mycity\": \"");
 			strcat(city, (const char *)tmp);
 			strcat(city, "\" }");
@@ -584,13 +602,13 @@ int setMode(string command)
 	
 	mode_changed = 0;
 
-	int j = command.indexOf('=',0);
+	int j = command.find_first_of('=',0);
 	if (j>0) {	// "=" is used when setting city only
-		if(command.substring(0,j) == "city")
+		if(command.substr(0,j) == "city")
 		{
-			unsigned char tmp[20] = "";
+			char tmp[20] = "";
 			int p = command.length();
-			command.getBytes(tmp, (p-j), j+1);
+			command.copy(tmp, (p-j), j+1);
 			strcpy(city, "\"mycity\": \"");
 			strcat(city, (const char *)tmp);
 			strcat(city, "\" ");
@@ -657,17 +675,19 @@ void quickWeather(){
 	}
 	else{
 		cls();
-		matrix.drawPixel(0,0,matrix.Color333(1,0,0));
-		matrix.swapBuffers(true);
-//		Spark.process();
-		sleep(1000);
+		drawPixel(canvas,0,0, Color(1,0,0));
+		drawPixel(canvas, 0,0,Color(1,0,0));
+//		matrix.swapBuffers(true);
+		DEBUG("Sleep\n");
+		sleep(10);
 	}
+	DEBUG("exiting quickWeather\n");
 }
-/*
+
 void getWeather(){
 	DEBUGpln("in getWeather");
 	char vars[90];
-	
+/*	
 	strcpy(vars, "{");
 	strcat(vars, city);
 	strcat(vars, ",");
@@ -686,15 +706,15 @@ void getWeather(){
 //		Spark.process();
 
 	if (!weatherGood) {
-		DEBUGpln("Weather update failed");
+		DEBUGn("Weather update failed\n");
 		badWeatherCall++;
 		if (badWeatherCall > 4)		//If 3 webhook call fail in a row, do a system reset
 			System.reset();
 	}
 	else
 		badWeatherCall = 0;
-}
 */
+}
 
 void processWeather(const char *name, const char *data){
 	weatherGood = true;
@@ -755,22 +775,32 @@ void showWeather(){
 		//divide by 3 so value between 0 and 16
 		numTemp = numTemp / 3;
 
-		int tempColor;
+//		int tempColor;
+		Color tempColor(0,0,0);
 		if(numTemp<8){
-			tempColor = matrix.Color444(0,tempColor/2,7);
+			
+			tempColor.r = 0;
+			tempColor.g = numTemp/2;
+			tempColor.b = 7;
+//			tempColor = matrix.Color444(0,tempColor/2,7);
 		}
 		else{
-			tempColor = matrix.Color444(7,(7-numTemp/2) ,0); 
+			tempColor.r = 7;
+			tempColor.g = (7-numTemp/2);
+			tempColor.b = 0;
+//			tempColor = matrix.Color444(7,(7-numTemp/2) ,0); 
 		} 
 
 		cls();
 
 		//Display the day on the top line.
 		if(i==0){
-			drawString(2,2,(char*)"Now",51,matrix.Color444(1,1,1));
+			drawString(2,2,(char*)"Now",51,Color(1,1,1));
+//			drawString(2,2,(char*)"Now",51,matrix.Color444(1,1,1));
 		}
 		else{
-			drawString(2,2,daynames[(dow+i-1) % 7],51,matrix.Color444(0,1,0));
+//			drawString(2,2,daynames[(dow+i-1) % 7],51,matrix.Color444(0,1,0));
+			drawString(2,2,daynames[(dow+i-1) % 7],51,Color(0,1,0));
 			DEBUGpln(daynames[(dow+i-1)%7]);
 		}
 
@@ -778,17 +808,19 @@ void showWeather(){
 		bool positive = !(w_temp[i][0]=='-');
 		for(int t=0; t<7; t++){
 			if(w_temp[i][t]=='-'){
-				matrix.drawLine(3,10,4,10,tempColor);
+//				matrix.drawLine(3,10,4,10,tempColor);
+				DrawLine(canvas, 3,10,4,10,tempColor);
 			}
 			else if(!(w_temp[i][t]==0)){
 				vectorNumber(w_temp[i][t]-'0',t*4+2+(positive*2),8,tempColor,1,1);
 			}
 		}
 
-		matrix.swapBuffers(true);
+// TODO
+//		matrix.swapBuffers(true);
 		drawWeatherIcon(16,0,atoi(w_id[i]));
 
-		Spark.process();	//Give the background process some lovin'
+//		Spark.process();	//Give the background process some lovin'
 
 	}
 }
@@ -801,7 +833,7 @@ void drawWeatherIcon(uint8_t x, uint8_t y, int id){
 		//rain[r]=random(9,18);
 		rain[r]=random(9,15);
 	}
-	int rainColor = matrix.Color333(0,0,1);
+	Color rainColor = Color(0,0,1);
 	unsigned short intensity=id-(id/10)*10 + 1;
 
 	int deep =0;
@@ -813,98 +845,102 @@ void drawWeatherIcon(uint8_t x, uint8_t y, int id){
 		switch(id/100){
 		case 2:
 			//Thunder
-			matrix.fillRect(x,y,16,16,matrix.Color333(0,0,0));
-			matrix.drawBitmap(x,y,cloud_outline,16,16,matrix.Color333(1,1,1));
+//			matrix.fillRect(x,y,16,16,matrix.Color333(0,0,0));
+//			matrix.drawBitmap(x,y,cloud_outline,16,16,matrix.Color333(1,1,1));
+			fillRect(canvas, x,y,16,16,Color(0,0,0));
+			drawBitmap(canvas, x,y,cloud_outline,16,16,Color(1,1,1));
 			if(random(0,10)==3){
 				int pos = random(-5,5);
-				matrix.drawBitmap(pos+x,y,lightning,16,16,matrix.Color333(1,1,1));
+				drawBitmap(canvas, pos+x,y,lightning,16,16,Color(1,1,1));
 			}
 			raining = true;
 			break;
 		case 3:  
 			//drizzle
-			matrix.fillRect(x,y,16,16,matrix.Color333(0,0,0));
-			matrix.drawBitmap(x,y,cloud,16,16,matrix.Color333(1,1,1));
+			fillRect(canvas, x,y,16,16,Color(0,0,0));
+			drawBitmap(canvas, x,y,cloud,16,16,Color(1,1,1));
 			raining=true;
 			break;
 		case 5:
 			//rain was 5
-			matrix.fillRect(x,y,16,16,matrix.Color333(0,0,0));
+			fillRect(canvas, x,y,16,16,Color(0,0,0));
 			
 			if(intensity<3){
-				matrix.drawBitmap(x,y,cloud,16,16,matrix.Color333(1,1,1));
+				drawBitmap(canvas, x,y,cloud,16,16,Color(1,1,1));
 			}
 			else{
-				matrix.drawBitmap(x,y,cloud_outline,16,16,matrix.Color333(1,1,1));
+				drawBitmap(canvas, x,y,cloud_outline,16,16,Color(1,1,1));
 			}
 			raining = true;
 			break;
 		case 6:
 			//snow was 6
-			rainColor = matrix.Color333(4,4,4);
-			matrix.fillRect(x,y,16,16,matrix.Color333(0,0,0));
+			rainColor = Color(4,4,4);
+			fillRect(canvas, x,y,16,16,Color(0,0,0));
 			
 			deep = (millis()-start)/500;
 			if(deep>6) deep=6;
 
 			if(intensity<3){
-				matrix.drawBitmap(x,y,cloud,16,16,matrix.Color333(1,1,1));
-				matrix.fillRect(x,y+16-deep/2,16,deep/2,rainColor);
+				drawBitmap(canvas, x,y,cloud,16,16,Color(1,1,1));
+				fillRect(canvas, x,y+16-deep/2,16,deep/2,rainColor);
 			}
 			else{
-				matrix.drawBitmap(x,y,cloud_outline,16,16,matrix.Color333(1,1,1));
-				matrix.fillRect(x,y+16-(deep),16,deep,rainColor);
+				drawBitmap(canvas, x,y,cloud_outline,16,16,Color(1,1,1));
+				fillRect(canvas, x,y+16-(deep),16,deep,rainColor);
 			}
 			raining = true;
 			break;  
 		case 7:
 			//atmosphere
-			matrix.drawRect(x,y,16,16,matrix.Color333(1,0,0));
-			drawString(x+2,y+6,(char*)"FOG",51,matrix.Color333(1,1,1));
+			drawRect(canvas, x,y,16,16,Color(1,0,0));
+//			drawString(x+2,y+6,(char*)"FOG",51,matrix.Color(1,1,1));
+			drawString(x+2,y+6,(char*)"FOG",51,Color(1,1,1));
 			break;
 		case 8:
 			//cloud
-			matrix.fillRect(x,y,16,16,matrix.Color333(0,0,1));
+			fillRect(canvas, x,y,16,16,Color(0,0,1));
 			if(id==800){
-				matrix.drawBitmap(x,y,big_sun,16,16,matrix.Color333(2,2,0));
+				drawBitmap(canvas, x,y,big_sun,16,16,Color(2,2,0));
 			}
 			else{
 				if(id==801){
-					matrix.drawBitmap(x,y,big_sun,16,16,matrix.Color333(2,2,0));
-					matrix.drawBitmap(x,y,cloud,16,16,matrix.Color333(1,1,1));
+					drawBitmap(canvas, x,y,big_sun,16,16,Color(2,2,0));
+					drawBitmap(canvas, x,y,cloud,16,16,Color(1,1,1));
 				}
 				else{
 					if(id==802 || id ==803){
-						matrix.drawBitmap(x,y,small_sun,16,16,matrix.Color333(1,1,0));
+						drawBitmap(canvas, x,y,small_sun,16,16,Color(1,1,0));
 					}
-					matrix.drawBitmap(x,y,cloud,16,16,matrix.Color333(1,1,1));
-					matrix.drawBitmap(x,y,cloud_outline,16,16,matrix.Color333(0,0,0));
+					drawBitmap(canvas, x,y,cloud,16,16,Color(1,1,1));
+					drawBitmap(canvas, x,y,cloud_outline,16,16,Color(0,0,0));
 				}
 			}
 			break;
 		case 9:
 			//extreme
-			matrix.fillRect(x,y,16,16,matrix.Color333(0,0,0));
-			matrix.drawRect(x,y,16,16,matrix.Color333(7,0,0));
+			fillRect(canvas, x,y,16,16,Color(0,0,0));
+			drawRect(canvas, x,y,16,16,Color(7,0,0));
 			if(id==906){
 				raining =true; 
 				intensity=3;
-				matrix.drawBitmap(x,y,cloud,16,16,matrix.Color333(1,1,1));
+				drawBitmap(canvas, x,y,cloud,16,16,Color(1,1,1));
 			};
 			break;
 		default:
-			matrix.fillRect(x,y,16,16,matrix.Color333(0,1,1));
-			matrix.drawBitmap(x,y,big_sun,16,16,matrix.Color333(2,2,0));
+			fillRect(canvas, x,y,16,16,Color(0,1,1));
+			drawBitmap(canvas, x,y,big_sun,16,16,Color(2,2,0));
 			break;    
 		}
 		if(raining){
 			for(int r = 0; r<13; r++){
-				matrix.drawPixel(x+r+2, rain[r]++, rainColor);
+//				matrix.drawPixel(x+r+2, rain[r]++, rainColor);
+				drawPixel(canvas, x+r+2, rain[r]++, rainColor);
 				if(rain[r]==16) rain[r]=9;
 				//if(rain[r]==20) rain[r]=9;
 			}
 		} 
-		matrix.swapBuffers(false);
+//TODO		matrix.swapBuffers(false);
 //		Spark.process();	//Give the background process some lovin'
 		sleep(( 50 -( intensity * 10 )) < 0 ? 0: 50-intensity*10);
 	}
@@ -913,20 +949,21 @@ void drawWeatherIcon(uint8_t x, uint8_t y, int id){
 
 
 void scrollBigMessage(char *m){
-	matrix.setTextSize(1);
+
+	setTextSize(canvas, 1);
 	int l = (strlen(m)*-6) - 32;
 	for(int i = 32; i > l; i--){
 		cls();
-		matrix.setCursor(i,1);
-		matrix.setTextColor(matrix.Color444(1,1,1));
-		matrix.print(m);
-		matrix.swapBuffers(false);
+		setCursor(canvas, i,1);
+		setTextColor(canvas, Color(1,1,1));
+// TODO		matrix.print(m);
+//TODO		matrix.swapBuffers(false);
 		sleep(50);
 //		Spark.process();
 	}
 
 }
-
+/*
 void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,uint8_t bottom_font_size, uint16_t top_color, uint16_t bottom_color){
 
 	int l = ((strlen(top)>strlen(bottom)?strlen(top):strlen(bottom))*-5) - 32;
@@ -938,19 +975,20 @@ void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,uint8_t bottom
 
 		cls();
 		
+//		drawString(i,1,top,top_font_size, top_color);
 		drawString(i,1,top,top_font_size, top_color);
+//		drawString(i,9,bottom, bottom_font_size, bottom_color);
 		drawString(i,9,bottom, bottom_font_size, bottom_color);
 		matrix.swapBuffers(false);
 		sleep(50);
-//		Spark.process();
 	}
 
 }
-
+*/
 
 //Runs pacman or other animation, refreshes weather data
 void pacClear(){
-	DEBUGpln("in pacClear");
+	DEBUG("in pacClear\n");
 	//refresh weather if we havent had it for 30 mins
 	//or the last time we had it, it was bad, 
 	//or weve never had it before.
@@ -970,7 +1008,7 @@ void pacClear(){
 
 void pacMan(){
 #if defined (usePACMAN)
-	DEBUGpln("in pacMan");
+	DEBUG("in pacMan\n");
 	if(powerPillEaten>0){
 		for(int i =32+(powerPillEaten*17); i>-17; i--){
 			long nowish = millis();
@@ -983,7 +1021,8 @@ void pacMan(){
 			if(powerPillEaten>3) drawScaredGhost(i-68,0);
 
 			matrix.swapBuffers(false);    
-			while(millis()-nowish<50) Spark.process();	//Give the background process some lovin'
+			while(millis()-nowish<50) 
+//				Spark.process();	//Give the background process some lovin'
 		}
 		powerPillEaten = 0;
 	}
@@ -1005,10 +1044,10 @@ void pacMan(){
 
 				if( j*5> i){
 					if(powerPill==0 && j==4){
-						matrix.fillCircle(j*5,8,2,matrix.Color333(7,3,0));
+						fillCircle(canvas, j*5,8,2,Color7,3,0));
 					}
 					else{
-						matrix.fillRect(j*5,8,2,2,matrix.Color333(7,3,0));
+						fillRect(canvas, j*5,8,2,2,Color(7,3,0));
 					}
 				}
 			}
@@ -1016,10 +1055,10 @@ void pacMan(){
 			if(i==19 && powerPill == 0) hasEaten=1;
 			drawPac(i,0,1);
 			if(hasEaten == 0){
-				if(numGhosts>0) drawGhost(i-17,0,matrix.Color333(3,0,3));
-				if(numGhosts>1) drawGhost(i-34,0,matrix.Color333(3,0,0));
-				if(numGhosts>2) drawGhost(i-51,0,matrix.Color333(0,3,3));
-				if(numGhosts>3) drawGhost(i-68,0,matrix.Color333(7,3,0));
+				if(numGhosts>0) drawGhost(i-17,0,Color(3,0,3));
+				if(numGhosts>1) drawGhost(i-34,0,Color(3,0,0));
+				if(numGhosts>2) drawGhost(i-51,0,Color(0,3,3));
+				if(numGhosts>3) drawGhost(i-68,0,Color(7,3,0));
 			}
 			else{
 				if(numGhosts>0) drawScaredGhost(i-17-(i-19)*2,0);
@@ -1028,7 +1067,8 @@ void pacMan(){
 				if(numGhosts>3) drawScaredGhost(i-68-(i-19)*2,0);
 			}
 			matrix.swapBuffers(false);
-			while(millis()-nowish<50) Spark.process();	//Give the background process some lovin'
+			while(millis()-nowish<50) 
+//				Spark.process();	//Give the background process some lovin'
 		}
 	}
 #endif //usePACMAN
@@ -1036,55 +1076,57 @@ void pacMan(){
 
 #if defined (usePACMAN)
 void drawPac(int x, int y, int z){
-	int c = matrix.Color333(3,3,0);
+	Color c = Color(3,3,0);
 	if(x>-16 && x<32){
 		if(abs(x)%4==0){
-			matrix.drawBitmap(x,y,(z>0?pac:pac_left),16,16,c);
+			drawBitmap(canvas, x,y,(z>0?pac:pac_left),16,16,c);
 		}
 		else if(abs(x)%4==1 || abs(x)%4==3){
-			matrix.drawBitmap(x,y,(z>0?pac2:pac_left2),16,16,c);
+			drawBitmap(canvas, x,y,(z>0?pac2:pac_left2),16,16,c);
 		}
 		else{
-			matrix.drawBitmap(x,y,(z>0?pac3:pac_left3),16,16,c);
+			drawBitmap(canvas, x,y,(z>0?pac3:pac_left3),16,16,c);
 		}
 	}
 }
 
-void drawGhost( int x, int y, int color){
+void drawGhost( int x, int y, Color color){
 	if(x>-16 && x<32){
 		if(abs(x)%8>3){
-			matrix.drawBitmap(x,y,blinky,16,16,color);
+			drawBitmap(canvas, x,y,blinky,16,16,color);
 		}
 		else{
-			matrix.drawBitmap(x,y,blinky2,16,16,color);
+			drawBitmap(canvas, x,y,blinky2,16,16,color);
 		}
-		matrix.drawBitmap(x,y,eyes1,16,16,matrix.Color333(3,3,3));
-		matrix.drawBitmap(x,y,eyes2,16,16,matrix.Color333(0,0,7));
+		drawBitmap(canvas, x,y,eyes1,16,16,Color(3,3,3));
+		drawBitmap(canvas, x,y,eyes2,16,16,Color(0,0,7));
 	}
 }  
 
 void drawScaredGhost( int x, int y){
 	if(x>-16 && x<32){
 		if(abs(x)%8>3){
-			matrix.drawBitmap(x,y,blinky,16,16,matrix.Color333(0,0,7));
+			drawBitmap(canvas, x,y,blinky,16,16,matrix.Color333(0,0,7));
 		}
 		else{
-			matrix.drawBitmap(x,y,blinky2,16,16,matrix.Color333(0,0,7));
+			drawBitmap(canvas, x,y,blinky2,16,16,Color(0,0,7));
 		}
-		matrix.drawBitmap(x,y,scared,16,16,matrix.Color333(7,3,2));
+		drawBitmap(canvas, x,y,scared,16,16,Color(7,3,2));
 	}
 }  
 #endif  //usePACMAN
 
 
 void cls(){
-	matrix.fillScreen(0);
+//	matrix.fillScreen(0);
+//        canvas->Fill(cMap[C_BLACK].r, cMap[C_BLACK].g, cMap[C_BLACK].b);
+        canvas->Fill(0,0,0);
 }
 
 void pong(){
 	DEBUGpln("in Pong");
-	matrix.setTextSize(1);
-	matrix.setTextColor(matrix.Color333(2, 2, 2));
+	setTextSize(canvas, 1);
+	setTextColor(canvas, Color(2, 2, 2));
 
 	float ballpos_x, ballpos_y;
 	float ballvel_x, ballvel_y;
@@ -1109,7 +1151,8 @@ void pong(){
 		if(Time.second()%2==0)adjust=1;
 		for (unsigned short i = 0; i <16; i++) {
 			if ( i % 2 == 0 ) { //plot point if an even number
-				matrix.drawPixel(16,i+adjust,matrix.Color333(0,4,0));
+//				matrix.drawPixel(16,i+adjust,matrix.Color333(0,4,0));
+				drawPixel(canvas, 16,i+adjust,Color(0,4,0));
 			}
 		} 
 
@@ -1143,16 +1186,16 @@ void pong(){
 			buffer[1] = buffer[0];
 			buffer[0] = '0';
 		}
-		vectorNumber(buffer[0]-'0',8,1,matrix.Color333(1,1,1),1,1);
-		vectorNumber(buffer[1]-'0',12,1,matrix.Color333(1,1,1),1,1);
+		vectorNumber(buffer[0]-'0',8,1,Color(1,1,1),1,1);
+		vectorNumber(buffer[1]-'0',12,1,Color(1,1,1),1,1);
 
 		itoa(mins,buffer,10); 
 		if (mins < 10) {
 			buffer[1] = buffer[0];
 			buffer[0] = '0';
 		} 
-		vectorNumber(buffer[0]-'0',18,1,matrix.Color333(1,1,1),1,1);
-		vectorNumber(buffer[1]-'0',22,1,matrix.Color333(1,1,1),1,1);
+		vectorNumber(buffer[0]-'0',18,1,Color(1,1,1),1,1);
+		vectorNumber(buffer[1]-'0',22,1,Color(1,1,1),1,1);
 
 		//if restart flag is 1, setup a new game
 		if (restart) {
@@ -1275,7 +1318,7 @@ void pong(){
 
 		//draw bat 1
 		if (bat1_update){
-			matrix.fillRect(BAT1_X-1,bat1_y,2,6,matrix.Color333(0,0,4));
+			fillRect(canvas, BAT1_X-1,bat1_y,2,6,Color(0,0,4));
 		}
 
 		//move bat 2 towards target (dont go any further or bat will move off screen)
@@ -1293,7 +1336,7 @@ void pong(){
 
 		//draw bat2
 		if (bat2_update){
-			matrix.fillRect(BAT2_X+1,bat2_y,2,6,matrix.Color333(0,0,4));
+			fillRect(canvas, BAT2_X+1,bat2_y,2,6,Color(0,0,4));
 		}
 
 		//update the ball position using the velocity
@@ -1408,7 +1451,8 @@ void pong(){
 		unsigned short plot_x = (int)(ballpos_x + 0.5f);
 		unsigned short plot_y = (int)(ballpos_y + 0.5f);
 
-		matrix.drawPixel(plot_x,plot_y,matrix.Color333(4, 0, 0));
+//		matrix.drawPixel(plot_x,plot_y,matrix.Color333(4, 0, 0));
+		drawPixel(canvas, plot_x,plot_y,Color(4, 0, 0));
 
 		//check if a bat missed the ball. if it did, reset the game.
 		if ((int)ballpos_x == 0 ||(int) ballpos_x == 32){
@@ -1417,7 +1461,7 @@ void pong(){
 
 //		Spark.process();	//Give the background process some lovin'
 		sleep(40);
-		matrix.swapBuffers(false);
+//TODO		matrix.swapBuffers(false);
 	} 
 }
 unsigned short pong_get_ball_endpoint(float tempballpos_x, float  tempballpos_y, float  tempballvel_x, float tempballvel_y) {
@@ -1437,9 +1481,9 @@ unsigned short pong_get_ball_endpoint(float tempballpos_x, float  tempballpos_y,
 void normal_clock()
 {
 	DEBUGpln("in normal_clock");
-	matrix.setTextWrap(false); // Allow text to run off right edge
-	matrix.setTextSize(2);
-	matrix.setTextColor(matrix.Color333(2, 3, 2));
+	setTextWrap(canvas, false); // Allow text to run off right edge
+	setTextSize(canvas, 2);
+	setTextColor(canvas, Color(2, 3, 2));
 
 	cls();
 	unsigned short hours = Time.hour();
@@ -1509,24 +1553,24 @@ void normal_clock()
 
 		//update the display
 		//shadows first
-		vectorNumber((lastHourBuffer[0]-'0'), 2, 2+msLastHourPosition, matrix.Color444(0,0,1),scale_x,scale_y);
-		vectorNumber((lastHourBuffer[1]-'0'), 9, 2+lsLastHourPosition, matrix.Color444(0,0,1),scale_x,scale_y);
-		vectorNumber((buffer[0]-'0'), 2, 2+msHourPosition, matrix.Color444(0,0,1),scale_x,scale_y);
-		vectorNumber((buffer[1]-'0'), 9, 2+lsHourPosition, matrix.Color444(0,0,1),scale_x,scale_y); 
+		vectorNumber((lastHourBuffer[0]-'0'), 2, 2+msLastHourPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((lastHourBuffer[1]-'0'), 9, 2+lsLastHourPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((buffer[0]-'0'), 2, 2+msHourPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((buffer[1]-'0'), 9, 2+lsHourPosition, Color(0,0,1),scale_x,scale_y); 
 
-		vectorNumber((lastHourBuffer[0]-'0'), 1, 1+msLastHourPosition, matrix.Color444(1,1,1),scale_x,scale_y);
-		vectorNumber((lastHourBuffer[1]-'0'), 8, 1+lsLastHourPosition, matrix.Color444(1,1,1),scale_x,scale_y);
-		vectorNumber((buffer[0]-'0'), 1, 1+msHourPosition, matrix.Color444(1,1,1),scale_x,scale_y);
-		vectorNumber((buffer[1]-'0'), 8, 1+lsHourPosition, matrix.Color444(1,1,1),scale_x,scale_y);    
+		vectorNumber((lastHourBuffer[0]-'0'), 1, 1+msLastHourPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((lastHourBuffer[1]-'0'), 8, 1+lsLastHourPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((buffer[0]-'0'), 1, 1+msHourPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((buffer[1]-'0'), 8, 1+lsHourPosition, Color(1,1,1),scale_x,scale_y);    
 
 		if(c1==0) lastHourBuffer[0]=buffer[0];
 		if(c2==0) lastHourBuffer[1]=buffer[1];
 
-		matrix.fillRect(16,5,2,2,matrix.Color444(0,0,Time.second()%2));
-		matrix.fillRect(16,11,2,2,matrix.Color444(0,0,Time.second()%2));
+		fillRect(canvas, 16,5,2,2,Color(0,0,Time.second()%2));
+		fillRect(canvas, 16,11,2,2,Color(0,0,Time.second()%2));
 
-		matrix.fillRect(15,4,2,2,matrix.Color444(Time.second()%2,Time.second()%2,Time.second()%2));
-		matrix.fillRect(15,10,2,2,matrix.Color444(Time.second()%2,Time.second()%2,Time.second()%2));
+		fillRect(canvas, 15,4,2,2,Color(Time.second()%2,Time.second()%2,Time.second()%2));
+		fillRect(canvas, 15,10,2,2,Color(Time.second()%2,Time.second()%2,Time.second()%2));
 
 		itoa (mins, buffer, 10);
 		if (mins < 10) {
@@ -1544,409 +1588,102 @@ void normal_clock()
 		lsMinPosition = c4;
 		lsLastMinPosition = c4 + 17;
 
-		vectorNumber((buffer[0]-'0'), 19, 2+msMinPosition, matrix.Color444(0,0,1),scale_x,scale_y);
-		vectorNumber((buffer[1]-'0'), 26, 2+lsMinPosition, matrix.Color444(0,0,1),scale_x,scale_y);
-		vectorNumber((lastMinBuffer[0]-'0'), 19, 2+msLastMinPosition, matrix.Color444(0,0,1),scale_x,scale_y);
-		vectorNumber((lastMinBuffer[1]-'0'), 26, 2+lsLastMinPosition, matrix.Color444(0,0,1),scale_x,scale_y);
+		vectorNumber((buffer[0]-'0'), 19, 2+msMinPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((buffer[1]-'0'), 26, 2+lsMinPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((lastMinBuffer[0]-'0'), 19, 2+msLastMinPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((lastMinBuffer[1]-'0'), 26, 2+lsLastMinPosition, Color(0,0,1),scale_x,scale_y);
 
-		vectorNumber((buffer[0]-'0'), 18, 1+msMinPosition, matrix.Color444(1,1,1),scale_x,scale_y);
-		vectorNumber((buffer[1]-'0'), 25, 1+lsMinPosition, matrix.Color444(1,1,1),scale_x,scale_y);
-		vectorNumber((lastMinBuffer[0]-'0'), 18, 1+msLastMinPosition, matrix.Color444(1,1,1),scale_x,scale_y);
-		vectorNumber((lastMinBuffer[1]-'0'), 25, 1+lsLastMinPosition, matrix.Color444(1,1,1),scale_x,scale_y);
+		vectorNumber((buffer[0]-'0'), 18, 1+msMinPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((buffer[1]-'0'), 25, 1+lsMinPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((lastMinBuffer[0]-'0'), 18, 1+msLastMinPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((lastMinBuffer[1]-'0'), 25, 1+lsLastMinPosition, Color(1,1,1),scale_x,scale_y);
 
 		if(c3==0) lastMinBuffer[0]=buffer[0];
 		if(c4==0) lastMinBuffer[1]=buffer[1];
 
-		matrix.swapBuffers(false); 
+//TODO		swapBuffers(false); 
 //		Spark.process();	//Give the background process some lovin'
 	}
 }
 
 //Draw number n, with x,y as top left corner, in chosen color, scaled in x and y.
 //when scale_x, scale_y = 1 then character is 3x5
-void vectorNumber(int n, int x, int y, int color, float scale_x, float scale_y){
+void vectorNumber(int n, int x, int y, Color color, float scale_x, float scale_y){
 
 	switch (n){
 	case 0:
-		matrix.drawLine(x ,y , x , y+(4*scale_y) , color);
-		matrix.drawLine(x , y+(4*scale_y) , x+(2*scale_x) , y+(4*scale_y), color);
-		matrix.drawLine(x+(2*scale_x) , y , x+(2*scale_x) , y+(4*scale_y) , color);
-		matrix.drawLine(x ,y , x+(2*scale_x) , y , color);
+		DrawLine(canvas, x ,y , x , y+(4*scale_y) , color);
+		DrawLine(canvas, x , y+(4*scale_y) , x+(2*scale_x) , y+(4*scale_y), color);
+		DrawLine(canvas, x+(2*scale_x) , y , x+(2*scale_x) , y+(4*scale_y) , color);
+		DrawLine(canvas, x ,y , x+(2*scale_x) , y , color);
 		break; 
 	case 1: 
-		matrix.drawLine( x+(1*scale_x), y, x+(1*scale_x),y+(4*scale_y), color);  
-		matrix.drawLine(x , y+4*scale_y , x+2*scale_x , y+4*scale_y,color);
-		matrix.drawLine(x,y+scale_y, x+scale_x, y,color);
+		DrawLine(canvas,  x+(1*scale_x), y, x+(1*scale_x),y+(4*scale_y), color);  
+		DrawLine(canvas, x , y+4*scale_y , x+2*scale_x , y+4*scale_y,color);
+		DrawLine(canvas, x,y+scale_y, x+scale_x, y,color);
 		break;
 	case 2:
-		matrix.drawLine(x ,y , x+2*scale_x , y , color);
-		matrix.drawLine(x+2*scale_x , y , x+2*scale_x , y+2*scale_y , color);
-		matrix.drawLine(x+2*scale_x , y+2*scale_y , x , y+2*scale_y, color);
-		matrix.drawLine(x , y+2*scale_y, x , y+4*scale_y,color);
-		matrix.drawLine(x , y+4*scale_y , x+2*scale_x , y+4*scale_y,color);
+		DrawLine(canvas, x ,y , x+2*scale_x , y , color);
+		DrawLine(canvas, x+2*scale_x , y , x+2*scale_x , y+2*scale_y , color);
+		DrawLine(canvas, x+2*scale_x , y+2*scale_y , x , y+2*scale_y, color);
+		DrawLine(canvas, x , y+2*scale_y, x , y+4*scale_y,color);
+		DrawLine(canvas, x , y+4*scale_y , x+2*scale_x , y+4*scale_y,color);
 		break; 
 	case 3:
-		matrix.drawLine(x ,y , x+2*scale_x , y , color);
-		matrix.drawLine(x+2*scale_x , y , x+2*scale_x , y+4*scale_y , color);
-		matrix.drawLine(x+2*scale_x , y+2*scale_y , x+scale_x , y+2*scale_y, color);
-		matrix.drawLine(x , y+4*scale_y , x+2*scale_x , y+4*scale_y,color);
+		DrawLine(canvas, x ,y , x+2*scale_x , y , color);
+		DrawLine(canvas, x+2*scale_x , y , x+2*scale_x , y+4*scale_y , color);
+		DrawLine(canvas, x+2*scale_x , y+2*scale_y , x+scale_x , y+2*scale_y, color);
+		DrawLine(canvas, x , y+4*scale_y , x+2*scale_x , y+4*scale_y,color);
 		break;
 	case 4:
-		matrix.drawLine(x+2*scale_x , y , x+2*scale_x , y+4*scale_y , color);
-		matrix.drawLine(x+2*scale_x , y+2*scale_y , x , y+2*scale_y, color);
-		matrix.drawLine(x ,y , x , y+2*scale_y , color);
+		DrawLine(canvas, x+2*scale_x , y , x+2*scale_x , y+4*scale_y , color);
+		DrawLine(canvas, x+2*scale_x , y+2*scale_y , x , y+2*scale_y, color);
+		DrawLine(canvas, x ,y , x , y+2*scale_y , color);
 		break;
 	case 5:
-		matrix.drawLine(x ,y , x+2*scale_x , y , color);
-		matrix.drawLine(x , y , x , y+2*scale_y , color);
-		matrix.drawLine(x+2*scale_x , y+2*scale_y , x , y+2*scale_y, color);
-		matrix.drawLine(x+2*scale_x , y+2*scale_y, x+2*scale_x , y+4*scale_y,color);
-		matrix.drawLine( x , y+4*scale_y , x+2*scale_x , y+4*scale_y,color);
+		DrawLine(canvas, x ,y , x+2*scale_x , y , color);
+		DrawLine(canvas, x , y , x , y+2*scale_y , color);
+		DrawLine(canvas, x+2*scale_x , y+2*scale_y , x , y+2*scale_y, color);
+		DrawLine(canvas, x+2*scale_x , y+2*scale_y, x+2*scale_x , y+4*scale_y,color);
+		DrawLine(canvas,  x , y+4*scale_y , x+2*scale_x , y+4*scale_y,color);
 		break; 
 	case 6:
-		matrix.drawLine(x ,y , x , y+(4*scale_y) , color);
-		matrix.drawLine(x ,y , x+2*scale_x , y , color);
-		matrix.drawLine(x+2*scale_x , y+2*scale_y , x , y+2*scale_y, color);
-		matrix.drawLine(x+2*scale_x , y+2*scale_y, x+2*scale_x , y+4*scale_y,color);
-		matrix.drawLine(x+2*scale_x , y+4*scale_y , x, y+(4*scale_y) , color);
+		DrawLine(canvas, x ,y , x , y+(4*scale_y) , color);
+		DrawLine(canvas, x ,y , x+2*scale_x , y , color);
+		DrawLine(canvas, x+2*scale_x , y+2*scale_y , x , y+2*scale_y, color);
+		DrawLine(canvas, x+2*scale_x , y+2*scale_y, x+2*scale_x , y+4*scale_y,color);
+		DrawLine(canvas, x+2*scale_x , y+4*scale_y , x, y+(4*scale_y) , color);
 		break;
 	case 7:
-		matrix.drawLine(x ,y , x+2*scale_x , y , color);
-		matrix.drawLine( x+2*scale_x, y, x+scale_x,y+(4*scale_y), color);
+		DrawLine(canvas, x ,y , x+2*scale_x , y , color);
+		DrawLine(canvas,  x+2*scale_x, y, x+scale_x,y+(4*scale_y), color);
 		break;
 	case 8:
-		matrix.drawLine(x ,y , x , y+(4*scale_y) , color);
-		matrix.drawLine(x , y+(4*scale_y) , x+(2*scale_x) , y+(4*scale_y), color);
-		matrix.drawLine(x+(2*scale_x) , y , x+(2*scale_x) , y+(4*scale_y) , color);
-		matrix.drawLine(x ,y , x+(2*scale_x) , y , color);
-		matrix.drawLine(x+2*scale_x , y+2*scale_y , x , y+2*scale_y, color);
+		DrawLine(canvas, x ,y , x , y+(4*scale_y) , color);
+		DrawLine(canvas, x , y+(4*scale_y) , x+(2*scale_x) , y+(4*scale_y), color);
+		DrawLine(canvas, x+(2*scale_x) , y , x+(2*scale_x) , y+(4*scale_y) , color);
+		DrawLine(canvas, x ,y , x+(2*scale_x) , y , color);
+		DrawLine(canvas, x+2*scale_x , y+2*scale_y , x , y+2*scale_y, color);
 		break;
 	case 9:
-		matrix.drawLine(x ,y , x , y+(2*scale_y) , color);
-		matrix.drawLine(x , y+(4*scale_y) , x+(2*scale_x) , y+(4*scale_y), color);
-		matrix.drawLine(x+(2*scale_x) , y , x+(2*scale_x) , y+(4*scale_y) , color);
-		matrix.drawLine(x ,y , x+(2*scale_x) , y , color);
-		matrix.drawLine(x+2*scale_x , y+2*scale_y , x , y+2*scale_y, color);
+		DrawLine(canvas, x ,y , x , y+(2*scale_y) , color);
+		DrawLine(canvas, x , y+(4*scale_y) , x+(2*scale_x) , y+(4*scale_y), color);
+		DrawLine(canvas, x+(2*scale_x) , y , x+(2*scale_x) , y+(4*scale_y) , color);
+		DrawLine(canvas, x ,y , x+(2*scale_x) , y , color);
+		DrawLine(canvas, x+2*scale_x , y+2*scale_y , x , y+2*scale_y, color);
 		break;    
 	}
 }
 
 
-//print a clock using words rather than numbers
-void word_clock() {
-	DEBUGpln("in word_clock");
-	cls();
-
-	char numbers[19][10]   = { 
-		"one", "two", "three", "four","five","six","seven","eight","nine","ten",
-		"eleven","twelve", "thirteen","fourteen","fifteen","sixteen","7teen","8teen","nineteen"                  };              
-	char numberstens[5][7] = { 
-		"ten","twenty","thirty","forty","fifty"                   };
-
-//	unsigned short hours_y, mins_y; //hours and mins and positions for hours and mins lines  
-
-	unsigned short hours = Time.hour();
-	unsigned short mins  = Time.minute();
-
-	//loop to display the clock for a set duration of SHOWCLOCK
-	for (int show = 0; show < SHOWCLOCK ; show++) {
-		
-		if (mode_changed == 1)
-			return;
-		if(mode_quick){
-			mode_quick = false;
-			display_date();
-			quickWeather();
-			word_clock();
-			return;
-		}
-
-		//print the time if it has changed or if we have just come into the subroutine
-		if ( show == 0 || mins != Time.minute() ) {  
-
-			//reset these for comparison next time
-			mins = Time.minute();   
-			hours = Time.hour();
-
-			//make hours into 12 hour format
-			if (hours > 12){ 
-				hours = hours - 12; 
-			}
-			if (hours == 0){ 
-				hours = 12; 
-			} 
-
-			//split mins value up into two separate digits 
-			int minsdigit = mins % 10;
-			unsigned short minsdigitten = (mins / 10) % 10;
-
-			char str_top[8];
-			char str_bot[8];
-			char str_mid[8];
-
-			//if mins <= 10 , then top line has to read "minsdigti past" and bottom line reads hours
-			if (mins < 10) {     
-				strcpy (str_top,numbers[minsdigit - 1]);
-				strcpy (str_mid,"PAST");
-				strcpy (str_bot,numbers[hours - 1]);
-			}
-			//if mins = 10, cant use minsdigit as above, so soecial case to print 10 past /n hour.
-			if (mins == 10) {     
-				strcpy (str_top,numbers[9]);
-				strcpy (str_mid,"PAST");
-				strcpy (str_bot,numbers[hours - 1]);
-			}
-
-			//if time is not on the hour - i.e. both mins digits are not zero, 
-			//then make top line read "hours" and bottom line ready "minstens mins" e.g. "three /n twenty one"
-			else if (minsdigitten != 0 && minsdigit != 0  ) {
-
-				strcpy (str_top,numbers[hours - 1]); 
-
-				//if mins is in the teens, use teens from the numbers array for the bottom line, e.g. "three /n fifteen"
-				if (mins >= 11 && mins <= 19) {
-					strcpy (str_bot, numbers[mins - 1]);
-					strcpy(str_mid," ");
-					//else bottom line reads "minstens mins" e.g. "three \n twenty three"
-				} 
-				else {     
-					strcpy (str_mid, numberstens[minsdigitten - 1]);
-					strcpy (str_bot, numbers[minsdigit -1]);
-				}
-			}
-			// if mins digit is zero, don't print it. read read "hours" "minstens" e.g. "three /n twenty"
-			else if (minsdigitten != 0 && minsdigit == 0  ) {
-				strcpy (str_top, numbers[hours - 1]);     
-				strcpy (str_bot, numberstens[minsdigitten - 1]);
-				strcpy (str_mid, " " );
-			}
-
-			//if both mins are zero, i.e. it is on the hour, the top line reads "hours" and bottom line reads "o'clock"
-			else if (minsdigitten == 0 && minsdigit == 0  ) {
-				strcpy (str_top,numbers[hours - 1]);     
-				strcpy (str_bot, "O'CLOCK");
-				strcpy (str_mid, " ");
-			}
-
-			//work out offset to center top line on display. 
-			unsigned short lentop = 0;
-			while(str_top[lentop]) { 
-				lentop++; 
-			}; //get length of message
-			unsigned short offset_top;
-			if(lentop<6){
-				offset_top = (X_MAX - ((lentop*6)-1)) / 2; //
-			}
-			else{
-				offset_top = (X_MAX - ((lentop - 1)*4)) / 2; //
-			}
-
-			//work out offset to center bottom line on display. 
-			unsigned short lenbot = 0;
-			while(str_bot[lenbot]) { 
-				lenbot++; 
-			}; //get length of message
-			unsigned short offset_bot;
-			if(lenbot<6){
-				offset_bot = (X_MAX - ((lenbot*6)-1)) / 2; //
-			}
-			else{
-				offset_bot = (X_MAX - ((lenbot - 1)*4)) / 2; //
-			}
-
-			unsigned short lenmid = 0;
-			while(str_mid[lenmid]) { 
-				lenmid++; 
-			}; //get length of message
-			unsigned short offset_mid;
-			if(lenmid<6){
-				offset_mid = (X_MAX - ((lenmid*6)-1)) / 2; //
-			}
-			else{
-				offset_mid = (X_MAX - ((lenmid - 1)*4)) / 2; //
-			}
-
-			cls();
-			drawString(offset_top,(lenmid>1?0:2),str_top,(lentop<6?53:51),matrix.Color333(0,1,5));
-			if(lenmid>1){
-				drawString(offset_mid,5,str_mid,(lenmid<6?53:51),matrix.Color333(1,1,5));
-			}
-			drawString(offset_bot,(lenmid>1?10:8),str_bot,(lenbot<6?53:51),matrix.Color333(0,5,1));    
-			matrix.swapBuffers(false);
-		}
-//		Spark.process();	//Give the background process some lovin'
-		sleep (50); 
-	}
-}
-
-
-//show time and date and use a random jumble of letters transition each time the time changes.
-void jumble() {
-
-	char days[7][4] = {
-		"SUN","MON","TUE", "WED", "THU", "FRI", "SAT"                  }; //DS1307 outputs 1-7
-	char allchars[37] = {
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"                  };
-	char endchar[16];
-	unsigned short counter[16];
-	unsigned short mins = Time.minute();
-	unsigned short seq[16];
-
-	DEBUGpln("in Jumble");
-	cls();
-
-	for (int show = 0; show < SHOWCLOCK ; show++) {
-		
-		if (mode_changed == 1)
-		return;
-		if(mode_quick){
-			mode_quick = false;
-			display_date();
-			quickWeather();
-			jumble();
-			return;
-		}
-
-		if ( show == 0 || mins != Time.minute()  ) {  
-			//fill an arry with 0-15 and randomize the order so we can plot letters in a jumbled pattern rather than sequentially
-			for (int i=0; i<16; i++) {
-				seq[i] = i;  // fill the array in order
-			}
-			//randomise array of numbers 
-			for (int i=0; i<(16-1); i++) {
-				int r = i + (rand() % (16-i)); // Random remaining position.
-				int temp = seq[i]; 
-				seq[i] = seq[r]; 
-				seq[r] = temp;
-			}
-
-			//reset these for comparison next time
-			mins = Time.minute();
-			unsigned short hours = Time.hour();   
-			unsigned short dow   = Time.weekday() - 1; // the DS1307 outputs 1 - 7. 
-			unsigned short date  = Time.day();
-
-			unsigned short alldone = 0;
-
-			//set counters to 50
-			for(unsigned short c=0; c<16 ; c++) {
-				counter[c] = 3 + random (0,20);
-			}
-
-			//set final characters
-			char buffer[3];
-			itoa(hours,buffer,10);
-
-			//fix - as otherwise if num has leading zero, e.g. "03" hours, itoa coverts this to chars with space "3 ". 
-			if (hours < 10) {
-				buffer[1] = buffer[0];
-				buffer[0] = '0';
-			}
-
-			endchar[0] = buffer[0];
-			endchar[1] = buffer[1];
-			endchar[2] = ':';
-
-			itoa (mins, buffer, 10);
-			if (mins < 10) {
-				buffer[1] = buffer[0];
-				buffer[0] = '0';
-			}
-
-			endchar[3] = buffer[0];
-			endchar[4] = buffer[1];
-
-			itoa (date, buffer, 10);
-			if (date < 10) {
-				buffer[1] = buffer[0];
-				buffer[0] = '0';
-			}
-
-			//then work out date 2 letter suffix - eg st, nd, rd, th etc
-			char suffix[4][3]={
-				"st", "nd", "rd", "th"                                                      };
-			unsigned short s = 3; 
-			if(date == 1 || date == 21 || date == 31) {
-				s = 0;
-			} 
-			else if (date == 2 || date == 22) {
-				s = 1;
-			} 
-			else if (date == 3 || date == 23) {
-				s = 2;
-			}
-			//set topline
-			endchar[5] = ' ';
-			endchar[6] = ' ';
-			endchar[7] = ' ';
-
-			//set bottom line
-			endchar[8] = days[dow][0];
-			endchar[9] = days[dow][1];
-			endchar[10] = days[dow][2];
-			endchar[11] = ' ';
-			endchar[12] = buffer[0];
-			endchar[13] = buffer[1];
-			endchar[14] = suffix[s][0];
-			endchar[15] = suffix[s][1];
-
-			unsigned short x = 0;
-			unsigned short y = 0;
-
-			//until all counters are 0
-			while (alldone < 16){
-
-				//for each char    
-				for(unsigned short c=0; c<16 ; c++) {
-
-					if (seq[c] < 8) { 
-						x = 0;
-						y = 0; 
-					} 
-					else {
-						x = 8;
-						y = 8;   
-					}
-
-					//if counter > 1 then put random char
-					if (counter[ seq[c] ] > 1) {
-						matrix.fillRect((seq[c]-x)*4,y,3,5,matrix.Color333(0,0,0));
-						drawChar((seq[c] - x) *4, y, allchars[random(0,36)],51,matrix.Color444(1,0,0));
-						counter[ seq[c] ]--;
-						matrix.swapBuffers(true);
-					}
-
-					//if counter == 1 then put final char 
-					if (counter[ seq[c] ] == 1) {
-						matrix.fillRect((seq[c]-x)*4,y,3,5,matrix.Color444(0,0,0));
-						drawChar((seq[c] - x) *4, y, endchar[seq[c]],51,matrix.Color444(0,0,1));
-						counter[seq[c]] = 0;
-						alldone++;
-						matrix.swapBuffers(true);
-					} 
-
-					//if counter == 0 then just pause to keep update rate the same
-					if (counter[seq[c]] == 0) {
-						sleep(4);
-					}
-
-					if (mode_changed == 1)
-					return;
-				}
-//				Spark.process();//Give the background process some lovin'
-			}
-		}
-		sleep(50);
-	} //showclock
-}
 
 
 void display_date()
 {
 	DEBUGpln("in display_date");
-	uint16_t color = matrix.Color333(0,1,0);
+	Color color = Color(0,1,0);
 	cls();
-	matrix.swapBuffers(true);
+//TODO	matrix.swapBuffers(true);
 	//read the date from the DS1307
 	//it returns the month number, day number, and a number representing the day of week - 1 for Tue, 2 for Wed 3 for Thu etc.
 	unsigned short dow = Time.weekday()-1;		//we  take one off the value the DS1307 generates, as our array of days is 0-6 and the DS1307 outputs  1-7.
@@ -1967,8 +1704,8 @@ void display_date()
 	while(daynames[dow][i])
 	{
 		flashing_cursor(i*4,0,3,5,0);
-		drawChar(i*4,0,daynames[dow][i],51,color);
-		matrix.swapBuffers(true);
+		drawChar(canvas, i*4,0,daynames[dow][i],51,color);
+//TODO		matrix.swapBuffers(true);
 		i++;
 
 		if (mode_changed == 1)
@@ -1981,7 +1718,7 @@ void display_date()
 		flashing_cursor(i*4,0,3,5,1);  
 	} 
 	else {
-		Spark.process();	//Give the background process some lovin'
+//		Spark.process();	//Give the background process some lovin'
 		sleep(300);
 	}
 
@@ -2007,8 +1744,8 @@ void display_date()
 	} 
 
 	//print the 1st date number
-	drawChar(0,8,buffer[0],51,color);
-	matrix.swapBuffers(true);
+	drawChar(canvas, 0,8,buffer[0],51,color);
+//TODO	matrix.swapBuffers(true);
 
 	//if date is under 10 - then we only have 1 digit so set positions of sufix etc one character nearer
 	unsigned short suffixposx = 4;
@@ -2017,18 +1754,18 @@ void display_date()
 	if (date > 9){
 		suffixposx = 8;
 		flashing_cursor(4,8,3,5,0); 
-		drawChar(4,8,buffer[1],51,color);
-		matrix.swapBuffers(true);
+		drawChar(canvas, 4,8,buffer[1],51,color);
+//TODO		matrix.swapBuffers(true);
 	}
 
 	//print the 2 suffix characters
 	flashing_cursor(suffixposx, 8,3,5,0);
-	drawChar(suffixposx,8,suffix[s][0],51,color);
-	matrix.swapBuffers(true);
+	drawChar(canvas, suffixposx,8,suffix[s][0],51,color);
+//TODO	matrix.swapBuffers(true);
 
 	flashing_cursor(suffixposx+4,8,3,5,0);
-	drawChar(suffixposx+4,8,suffix[s][1],51,color);
-	matrix.swapBuffers(true);
+	drawChar(canvas, suffixposx+4,8,suffix[s][1],51,color);
+//TODO	matrix.swapBuffers(true);
 
 	//blink cursor after 
 	flashing_cursor(suffixposx + 8,8,3,5,1);  
@@ -2039,21 +1776,21 @@ void display_date()
 		int w =0 ;
 		while(daynames[dow][w])
 		{
-			drawChar(w*4,q-8,daynames[dow][w],51,color);
+			drawChar(canvas, w*4,q-8,daynames[dow][w],51,color);
 
 			w++;
 		}
 
-		matrix.swapBuffers(true);
+//TODO		matrix.swapBuffers(true);
 		//date first digit
-		drawChar(0,q,buffer[0],51,color);
+		drawChar(canvas, 0,q,buffer[0],51,color);
 		//date second digit - this may be blank and overwritten if the date is a single number
-		drawChar(4,q,buffer[1],51,color);
+		drawChar(canvas, 4,q,buffer[1],51,color);
 		//date suffix
-		drawChar(suffixposx,q,suffix[s][0],51,color);
+		drawChar(canvas, suffixposx,q,suffix[s][0],51,color);
 		//date suffix
-		drawChar(suffixposx+4,q,suffix[s][1],51,color);
-		matrix.swapBuffers(true);
+		drawChar(canvas, suffixposx+4,q,suffix[s][1],51,color);
+//TODO		matrix.swapBuffers(true);
 		sleep(50);
 	}
 	//flash the cursor for a second for effect
@@ -2064,8 +1801,8 @@ void display_date()
 	while(monthnames[mont][i])
 	{  
 		flashing_cursor(i*4,8,3,5,0);
-		drawChar(i*4,8,monthnames[mont][i],51,color);
-		matrix.swapBuffers(true);
+		drawChar(canvas, i*4,8,monthnames[mont][i],51,color);
+//TODO		matrix.swapBuffers(true);
 		i++; 
 
 	}
@@ -2083,21 +1820,21 @@ void display_date()
 		int w =0 ;
 		while(monthnames[mont][w])
 		{
-			drawChar(w*4,q,monthnames[mont][w],51,color);
+			drawChar(canvas, w*4,q,monthnames[mont][w],51,color);
 
 			w++;
 		}
 
-		matrix.swapBuffers(true);
+//TODO		matrix.swapBuffers(true);
 		//date first digit
-		drawChar(0,q-8,buffer[0],51,color);
+		drawChar(canvas, 0,q-8,buffer[0],51,color);
 		//date second digit - this may be blank and overwritten if the date is a single number
-		drawChar(4,q-8,buffer[1],51,color);
+		drawChar(canvas, 4,q-8,buffer[1],51,color);
 		//date suffix
-		drawChar(suffixposx,q-8,suffix[s][0],51,color);
+		drawChar(canvas, suffixposx,q-8,suffix[s][0],51,color);
 		//date suffix
-		drawChar(suffixposx+4,q-8,suffix[s][1],51,color);
-		matrix.swapBuffers(true);
+		drawChar(canvas, suffixposx+4,q-8,suffix[s][1],51,color);
+//TODO		matrix.swapBuffers(true);
 		sleep(50);
 	}
 }
@@ -2110,8 +1847,8 @@ void display_date()
 void flashing_cursor(unsigned short xpos, unsigned short ypos, unsigned short cursor_width, unsigned short cursor_height, unsigned short repeats)
 {
 	for (unsigned short r = 0; r <= repeats; r++) {
-		matrix.fillRect(xpos,ypos,cursor_width, cursor_height, matrix.Color333(0,3,0));
-		matrix.swapBuffers(true);
+		fillRect(canvas, xpos,ypos,cursor_width, cursor_height, Color(0,3,0));
+//TODO		matrix.swapBuffers(true);
 
 		if (repeats > 0) {
 			sleep(400);
@@ -2120,8 +1857,8 @@ void flashing_cursor(unsigned short xpos, unsigned short ypos, unsigned short cu
 			sleep(70);
 		}
 
-		matrix.fillRect(xpos,ypos,cursor_width, cursor_height, matrix.Color333(0,0,0));
-		matrix.swapBuffers(true);
+		fillRect(canvas, xpos,ypos,cursor_width, cursor_height, Color(0,0,0));
+//TODO		matrix.swapBuffers(true);
 
 		//if cursor set to repeat, wait a while
 		if (repeats > 0) {
@@ -2129,6 +1866,14 @@ void flashing_cursor(unsigned short xpos, unsigned short ypos, unsigned short cu
 		}
 //		Spark.process();	//Give the background process some lovin'
 	}
+}
+void drawString(int x, int y, char* c,uint8_t font_size, Color color)
+{
+// TODO make font reflect size
+
+        // x & y are positions, c-> pointer to string to disp, update_s: false(write to mem), true: write to disp
+        //font_size : 51(ascii value for 3), 53(5) and 56(8)
+	DrawText(canvas, mFont, 2,2, color, NULL, c);
 }
 
 
@@ -2138,7 +1883,7 @@ void drawString(int x, int y, char* c,uint8_t font_size, uint16_t color)
 	//font_size : 51(ascii value for 3), 53(5) and 56(8)
 	for(uint16_t i=0; i< strlen(c); i++)
 	{
-		drawChar(x, y, c[i],font_size, color);
+//		drawChar(canvas, x, y, c[i],font_size, color);
 		x+=calc_font_displacement(font_size); // Width of each glyph
 	}
 }
@@ -2163,9 +1908,15 @@ int calc_font_displacement(uint8_t font_size)
 	}
 }
 
+void drawChar(Canvas *canvas, int x, int y, char c, uint8_t font_size, Color color)  // Display the data depending on the font size mentioned in the font_size variable
+{
+ int i;
+ i = mFont.DrawGlyph(canvas, x, y, color, c);
+}
+
 void drawChar(int x, int y, char c, uint8_t font_size, uint16_t color)  // Display the data depending on the font size mentioned in the font_size variable
 {
-
+/*
 	uint8_t dots;
 	if ((c >= 'A' && c <= 'Z') ||
 			(c >= 'a' && c <= 'z')) {
@@ -2189,8 +1940,10 @@ void drawChar(int x, int y, char c, uint8_t font_size, uint16_t color)  // Displ
 	case 51:  // font size 3x5  ascii value of 3: 51
 
 		if(c==':'){
-			matrix.drawPixel(x+1,y+1,color);
-			matrix.drawPixel(x+1,y+3,color);
+//			matrix.drawPixel(x+1,y+1,color);
+//			matrix.drawPixel(x+1,y+3,color);
+			drawPixel(canvas,x+1,y+1,color);
+			drawPixel(canvas,x+1,y+3,color);
 		}
 		else if(c=='-'){
 			matrix.drawLine(x,y+2,3,0,color);
@@ -2247,331 +2000,10 @@ void drawChar(int x, int y, char c, uint8_t font_size, uint16_t color)  // Displ
 	default:
 		break;
 	}
+*/
 }
 
 
-//Spectrum Analyser stuff
-void spectrumDisplay(){
-#if defined (useFFT)
-
-	uint8_t static i = 0;
-	//static unsigned long tt = 0;
-	int16_t val;
-
-	uint8_t  c;
-	uint16_t x,minLvl, maxLvl;
-	int      level, y, off;
-
-	DEBUGpln("in Spectrum");
-
-	off = 0;
-
-	cls();
-	//for (int show = 0; show < SHOWCLOCK ; show++) {
-	int showTime = Time.now();
-	
-	while((Time.now() - showTime) < showClock) {
-		if (mode_changed == 1)
-		return;	
-		if(mode_quick){
-			mode_quick = false;
-			display_date();
-			quickWeather();
-			spectrumDisplay();
-			return;
-		}
-
-		if (i < 128){
-			val = map(analogRead(MIC),0,4095,0,1023);
-			fftdata[i] = (val / 4) - 128;
-			im[i] = 0;
-			i++;   
-		}
-		else {
-			//this could be done with the fix_fftr function without the im array.
-			fix_fft(fftdata,im,7,0);
-			//fix_fftr(fftdata,7,0);
-			
-			// I am only interessted in the absolute value of the transformation
-			for (i=0; i< 64;i++){
-				fftdata[i] = sqrt(fftdata[i] * fftdata[i] + im[i] * im[i]); 
-				//ftdata[i] = sqrt(fftdata[i] * fftdata[i] + fftdata[i+64] * fftdata[i+64]); 
-			}
-
-			for (i=0; i< 32;i++){
-				spectrum[i] = fftdata[i*2] + fftdata[i*2 + 1];   // average together 
-			}
-
-			for(int l=0; l<16;l++){
-				int col = matrix.Color444(16-l,0,l);
-				matrix.drawLine(0,l,31,l,col);
-			}
-
-			// Downsample spectrum output to 32 columns:
-			for(x=0; x<32; x++) {
-				col[x][colCount] = spectrum[x];
-				
-				minLvl = maxLvl = col[x][0];
-				int colsum=col[x][0];
-				for(i=1; i<10; i++) { // Get range of prior 10 frames
-					if(i<10)colsum = colsum + col[x][i];
-					if(col[x][i] < minLvl)      minLvl = col[x][i];
-					else if(col[x][i] > maxLvl) maxLvl = col[x][i];
-				}
-				// minLvl and maxLvl indicate the extents of the FFT output, used
-				// for vertically scaling the output graph (so it looks interesting
-				// regardless of volume level).  If they're too close together though
-				// (e.g. at very low volume levels) the graph becomes super coarse
-				// and 'jumpy'...so keep some minimum distance between them (this
-				// also lets the graph go to zero when no sound is playing):
-				if((maxLvl - minLvl) < 16) maxLvl = minLvl + 8;
-				minLvlAvg[x] = (minLvlAvg[x] * 7 + minLvl) >> 3; // Dampen min/max levels
-				maxLvlAvg[x] = (maxLvlAvg[x] * 7 + maxLvl) >> 3; // (fake rolling average)
-
-				level = col[x][colCount];
-				// Clip output and convert to byte:
-				if(level < 0L)      c = 0;
-				else if(level > 18) c = 18; // Allow dot to go a couple pixels off top
-				else                c = (uint8_t)level;
-
-				if(c > peak[x]) peak[x] = c; // Keep dot on top
-
-				if(peak[x] <= 0) { // Empty column?
-					matrix.drawLine(x, 0, x, 15, off);
-					continue;
-				}
-				else if(c < 15) { // Partial column?
-					matrix.drawLine(x, 0, x, 15 - c, off);
-				}
-
-				// The 'peak' dot color varies, but doesn't necessarily match
-				// the three screen regions...yellow has a little extra influence.
-				y = 16 - peak[x];
-				matrix.drawPixel(x,y,matrix.Color444(peak[x],0,16-peak[x]));
-			}
-			i=0;
-		}
-
-		int mins = Time.minute();
-		int hours = Time.hour();
-
-		char buffer[3];
-
-		itoa(hours,buffer,10);
-		//fix - as otherwise if num has leading zero, e.g. "03" hours, itoa coverts this to chars with space "3 ". 
-		if (hours < 10) {
-			buffer[1] = buffer[0];
-			buffer[0] = '0';
-		}
-		vectorNumber(buffer[0]-'0',8,1,matrix.Color333(0,1,0),1,1);
-		vectorNumber(buffer[1]-'0',12,1,matrix.Color333(0,1,0),1,1);
-
-		itoa(mins,buffer,10);
-		//fix - as otherwise if num has leading zero, e.g. "03" hours, itoa coverts this to chars with space "3 ". 
-		if (mins < 10) {
-			buffer[1] = buffer[0];
-			buffer[0] = '0';
-		}
-		vectorNumber(buffer[0]-'0',18,1,matrix.Color333(0,1,0),1,1);
-		vectorNumber(buffer[1]-'0',22,1,matrix.Color333(0,1,0),1,1);
-
-		matrix.drawPixel(16,2,matrix.Color333(0,1,0));
-		matrix.drawPixel(16,4,matrix.Color333(0,1,0));
-
-		matrix.swapBuffers(true);
-		//sleep(10);
-
-
-		// Every third frame, make the peak pixels drop by 1:
-		if(++dotCount >= 3) {
-			dotCount = 0;
-			for(x=0; x<32; x++) {
-				if(peak[x] > 0) peak[x]--;
-			}
-		}
-
-		if(++colCount >= 10) colCount = 0;
-		
-//		Spark.process();	//Give the background process some lovin'
-	}
-
-#endif
-}
-
-
-void plasma()
-{
-	int           x1, x2, x3, x4, y1, y2, y3, y4, sx1, sx2, sx3, sx4;
-	unsigned char x, y;
-	long          value;
-	unsigned long slowFrameRate = millis();
-	
-	cls();
-	
-	//for (int show = 0; show < SHOWCLOCK ; show++) {
-	int showTime = Time.now();
-	
-	while((Time.now() - showTime) < showClock) {		
-		if (mode_changed == 1)
-		return;	
-		if(mode_quick){
-			mode_quick = false;
-			display_date();
-			quickWeather();
-			spectrumDisplay();
-			return;
-		}
-		
-		if (millis() - slowFrameRate >= 150) {
-			
-			sx1 = (int)(cos(angle1) * radius1 + centerx1);
-			sx2 = (int)(cos(angle2) * radius2 + centerx2);
-			sx3 = (int)(cos(angle3) * radius3 + centerx3);
-			sx4 = (int)(cos(angle4) * radius4 + centerx4);
-			y1  = (int)(sin(angle1) * radius1 + centery1);
-			y2  = (int)(sin(angle2) * radius2 + centery2);
-			y3  = (int)(sin(angle3) * radius3 + centery3);
-			y4  = (int)(sin(angle4) * radius4 + centery4);
-
-			for(y=0; y<(matrix.height()); y++) {
-				x1 = sx1; x2 = sx2; x3 = sx3; x4 = sx4;
-				for(x=0; x<matrix.width(); x++) {
-					value = hueShift
-					+ (int8_t)pgm_read_byte(sinetab + (uint8_t)((x1 * x1 + y1 * y1) >> 4))
-					+ (int8_t)pgm_read_byte(sinetab + (uint8_t)((x2 * x2 + y2 * y2) >> 4))
-					+ (int8_t)pgm_read_byte(sinetab + (uint8_t)((x3 * x3 + y3 * y3) >> 5))
-					+ (int8_t)pgm_read_byte(sinetab + (uint8_t)((x4 * x4 + y4 * y4) >> 5));
-					matrix.drawPixel(x, y, matrix.ColorHSV(value * 3, 255, 255, true));
-					x1--; x2--; x3--; x4--;
-				}
-				y1--; y2--; y3--; y4--;
-			}
-
-			angle1 += 0.03;
-			angle2 -= 0.07;
-			angle3 += 0.13;
-			angle4 -= 0.15;
-			hueShift += 2;
-
-			matrix.fillRect(7, 0, 19, 7, 0);
-			
-			int mins = Time.minute();
-			int hours = Time.hour();
-			char buffer[3];
-
-			itoa(hours,buffer,10);
-			//fix - as otherwise if num has leading zero, e.g. "03" hours, itoa coverts this to chars with space "3 ". 
-			if (hours < 10) {
-				buffer[1] = buffer[0];
-				buffer[0] = '0';
-			}
-			vectorNumber(buffer[0]-'0',8,1,matrix.Color333(229,0,0),1,1);
-			vectorNumber(buffer[1]-'0',12,1,matrix.Color333(229,0,0),1,1);
-
-			itoa(mins,buffer,10);
-			//fix - as otherwise if num has leading zero, e.g. "03" hours, itoa coverts this to chars with space "3 ". 
-			if (mins < 10) {
-				buffer[1] = buffer[0];
-				buffer[0] = '0';
-			}
-			vectorNumber(buffer[0]-'0',18,1,matrix.Color333(229,0,0),1,1);
-			vectorNumber(buffer[1]-'0',22,1,matrix.Color333(229,0,0),1,1);
-
-			matrix.drawPixel(16,2,matrix.Color333(229,0,0));
-			matrix.drawPixel(16,4,matrix.Color333(229,0,0));
-			
-			matrix.swapBuffers(false);
-			
-			slowFrameRate = millis();
-		}
-//		Spark.process();	//Give the background process some lovin'
-		sleep(30);
-	}
-}
-
-void marquee()
-{
-	char topLine[40] = {""};
-#ifdef USING_SPECIAL_MESSAGES
-  	char* botmLine = getMessageOfTheDay();
-#else
-  	char botmLine[40] = "INSERT YOUR SPECIAL MESSAGE HERE";
-#endif
-	String tFull;
-	
-	//for (int show = 0; show < SHOWCLOCK ; show++) {
-	int showTime = Time.now();
-	
-	while((Time.now() - showTime) < showClock) {
-
-		if (mode_changed == 1)
-			return;
-		if(mode_quick){
-			mode_quick = false;
-			display_date();
-			quickWeather();
-			marquee();
-			return;
-		}
-		
-		tFull = Time.timeStr();
-		tFull.toUpperCase();
-		tFull.toCharArray(topLine, tFull.length()+1);
-		tFull = "";
-
-		//scrollBigMessage(topLine);
-		scrollMessage(topLine, botmLine, 53, 53, Green, Navy);
-		
-		sleep(50);
-		
-//		Spark.process();
-	}
-}
-
-#ifdef USING_SPECIAL_MESSAGES
-
-char* getMessageOfTheDay()
-{
-  for (int i = 0; i < sizeof(ourHolidays) / sizeof(ourHolidays[0]); i++)
-  {
-    if (ourHolidays[i].month == Time.month() && ourHolidays[i].day == Time.day())
-      return ourHolidays[i].message;
-  }
-  return "  WELCOME TO PONG CLOCK";
-}
-
-#endif
-
-void nitelite()
-{
-  static int lastSecond = 60;
-  int nowTime = Time.now();
-  int nowHour = Time.hour(nowTime);
-  nowHour %= 12;
-  if (nowHour == 0) nowHour = 12;
-  int nowMinute = Time.minute(nowTime);
-  int nowSecond = Time.second(nowTime);
-  if(lastSecond != nowSecond)
-  {
-    cls();
-    char nowBuffer[5] = "";
-    sprintf(nowBuffer, "%2d%02d", nowHour, nowMinute);
-    matrix.fillCircle(7, 6, 7, matrix.Color333(10, 10, 10)); // moon
-    matrix.fillCircle(9, 4, 7, matrix.Color333(0, 0, 0));    // cutout the crescent
-    matrix.drawPixel(16, 3, matrix.Color333(10, 10, 10));    // stars
-    matrix.drawPixel(30, 2, matrix.Color333(10, 10, 10));
-    matrix.drawPixel(19, 6, matrix.Color333(10, 10, 10));
-    matrix.drawPixel(21, 1, matrix.Color333(10, 10, 10));
-    vectorNumber(nowBuffer[0] - '0', 15, 11, matrix.Color333(10, 10, 10), 1, 1);
-    vectorNumber(nowBuffer[1] - '0', 19, 11, matrix.Color333(10, 10, 10), 1, 1);
-    vectorNumber(nowBuffer[2] - '0', 25, 11, matrix.Color333(10, 10, 10), 1, 1);
-    vectorNumber(nowBuffer[3] - '0', 29, 11, matrix.Color333(10, 10, 10), 1, 1);
-    matrix.drawPixel(23, 12, (nowSecond % 2)? matrix.Color333(5, 5, 5) : matrix.Color333(0, 0, 0));
-    matrix.drawPixel(23, 14, (nowSecond % 2)? matrix.Color333(5, 5, 5) : matrix.Color333(0, 0, 0));
-    matrix.swapBuffers(false);
-  }
-  lastSecond = nowSecond;
-}
 
 int timerEvaluate(const struct TimerObject on_time, const struct TimerObject off_time, const unsigned int currentTime)
 {
@@ -2648,4 +2080,49 @@ bool IsDst(int day, int month, int dayOfWeek)
     return false;
   }
 }
+
 #endif
+
+//TODO
+void word_clock() {}
+
+void nitelite() {
+
+  DEBUG("In nitelite\n");
+
+  static int lastSecond = 60;
+  int nowTime = Time.now();
+  int nowHour = Time.hour(nowTime);
+  nowHour %= 12;
+  if (nowHour == 0) nowHour = 12;
+  int nowMinute = Time.minute(nowTime);
+  int nowSecond = Time.second(nowTime);
+  if(lastSecond != nowSecond)
+  {
+    DEBUG("Doing nite stuff\n");
+    cls();
+    char nowBuffer[5] = "";
+    sprintf(nowBuffer, "%2d%02d", nowHour, nowMinute);
+    fillCircle(canvas, 7, 6, 7, Color(10, 10, 10)); // moon
+    fillCircle(canvas, 9, 4, 7, Color(0, 0, 0));    // cutout the crescent
+    drawPixel(canvas, 16, 3, Color(10, 10, 10));    // stars
+    drawPixel(canvas, 30, 2, Color(10, 10, 10));
+    drawPixel(canvas, 19, 6, Color(10, 10, 10));
+    drawPixel(canvas, 21, 1, Color(10, 10, 10));
+    vectorNumber(nowBuffer[0] - '0', 15, 11, Color(10, 10, 10), 1, 1);
+    vectorNumber(nowBuffer[1] - '0', 19, 11, Color(10, 10, 10), 1, 1);
+    vectorNumber(nowBuffer[2] - '0', 25, 11, Color(10, 10, 10), 1, 1);
+    vectorNumber(nowBuffer[3] - '0', 29, 11, Color(10, 10, 10), 1, 1);
+    drawPixel(canvas, 23, 12, (nowSecond % 2)? Color(5, 5, 5) : Color(0, 0, 0));
+    drawPixel(canvas, 23, 14, (nowSecond % 2)? Color(5, 5, 5) : Color(0, 0, 0));
+//TODO    matrix.swapBuffers(false);
+  }
+  lastSecond = nowSecond;
+  DEBUG("Leaving nite stuff\n");
+}
+
+void marquee() {}
+void jumble() {}
+void plasma() {}
+void spectrumDisplay() {}
+

@@ -1,7 +1,6 @@
 #ifndef FIXFFT_H
 #define FIXFFT_H
 
-#include "application.h"
 #include <math.h>
 
 #define pgm_read_byte_near(_addr) (pgm_read_byte(_addr))
