@@ -1,7 +1,7 @@
-#include <avr/pgmspace.h>
+//#include <avr/pgmspace.h>
 // copied from http://heim.ifi.uio.no/haakoh/avr/a
 const int fnt_count = 37;
-unsigned char PROGMEM font5x5[38][5] = {
+unsigned char  font5x5[38][5] = {
 	{0, 0, 0, 0, 0}, // space!
   {0x7c,0x44,0x44,0x7c,0x44},  //A  
   {0x7c,0x44,0x78,0x44,0x7c},  

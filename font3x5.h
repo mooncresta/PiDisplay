@@ -1,7 +1,7 @@
 // Kunal Doshi
 // www.kunaldoshi.com
 
-unsigned char PROGMEM font3x5[38][5] = { 
+unsigned char  font3x5[38][5] = { 
 {0,0,0,0,0},		
 {0x7,0x5,0x7,0x5,0x5},  //A
 {0x7,0x5,0x7,0x5,0x7},
