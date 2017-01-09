@@ -15,7 +15,7 @@
 #include "trng.h"
 
 #define boolean bool
-//extern unsigned int millis            (void) ;
+extern unsigned int millis            (void) ;
 int random(int, int);
 static uint64_t epochMilli, epochMicro ;
 

@@ -111,7 +111,7 @@ void fillCircleHelper(Canvas *canvas, int16_t x0, int16_t y0, int16_t r,
 	setTextSize(canvas, 1);
 	int l = (strlen(m)*-6) - 32;
 	for(int i = 32; i > l; i--){
-		cls();
+		cls(canvas);
 		setCursor(canvas, i,1);
 		setTextColor(canvas, Color(1,1,1));
 // TODO		matrix.print(m);
@@ -130,7 +130,7 @@ void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,uint8_t bottom
 		if (mode_changed == 1 || mode_quick)
 			return;
 
-		cls();
+		cls(canvas);
 
 //		drawString(i,1,top,top_font_size, top_color);
 		drawString(i,1,top,top_font_size, top_color);
@@ -144,8 +144,8 @@ void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,uint8_t bottom
 */
 
 // Clear Screen - Set to black
-void cls(){
-        canvas->Fill(0,0,0);
+void cls(Canvas *canvas){
+    canvas->Clear();
 }
 
 /*

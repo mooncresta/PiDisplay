@@ -88,6 +88,13 @@ int r,g,b;
 #define Y_MAX 15
 
 /****************************/
+/***** Weather webhook definitions *****/
+#define HOOK_RESP		"hook-response/weather_hook"
+#define HOOK_PUB		"weather_hook"
+#define DEFAULT_CITY	"\"mycity\":\"Ottawa,ON\""	// Change to desired default city,state
+#define API_KEY			"\"apikey\":\"yourkeyhere\""
+#define UNITS			"\"units\":\"metric\""		// Change to "imperial" for farenheit units
+/***************************************/
 
 /************ PROTOTYPES **************/
 int setMode(string command);
