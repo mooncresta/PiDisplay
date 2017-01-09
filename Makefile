@@ -1,6 +1,6 @@
 CXXFLAGS=-Wall -O3 -g -fno-strict-aliasing $(RGB_INCDIR)
 BINARIES=PiDisplay
-OBJECTS=PiDisplay.o bridge.o 
+OBJECTS=PiDisplay.o bridge.o gfx_core.o
 
 RGB_LIB_DISTRIBUTION=rpi-rgb-led-matrix
 RGB_LIBDIR=$(RGB_LIB_DISTRIBUTION)/lib
