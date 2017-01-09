@@ -62,10 +62,12 @@ void cls(Canvas *canvas){
 
 void setTextWrap(Canvas *canvas, bool f)
 {
+	wrap = f;
 }
 
 void setTextSize(Canvas *canvas, int s)
 {
+	 textsize = (s > 0) ? s : 1;
 }
 
 void drawPixel(Canvas *canvas, int16_t x, int16_t y, Color color)
@@ -124,28 +126,26 @@ void  scrollBigMessage(Canvas *canvas, char *m){
         }
 }
 
-/*
-void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,uint8_t bottom_font_size, uint16_t top_color, uint16_t bottom_color){
+
+void scrollMessage(Canvas *canvas, char* top, char* bottom ,uint8_t top_font_size,
+		   uint8_t bottom_font_size, uint16_t top_color, uint16_t bottom_color){
 
 	int l = ((strlen(top)>strlen(bottom)?strlen(top):strlen(bottom))*-5) - 32;
 
 	for(int i=32; i > l; i--){
-
 		if (mode_changed == 1 || mode_quick)
 			return;
-
 		cls(canvas);
-
-//		drawString(i,1,top,top_font_size, top_color);
-		drawString(i,1,top,top_font_size, top_color);
-//		drawString(i,9,bottom, bottom_font_size, bottom_color);
-		drawString(i,9,bottom, bottom_font_size, bottom_color);
-		matrix.swapBuffers(false);
+		drawString(canvas, i,1,top,top_font_size, top_color);
+		drawString(canvas, i,1,top,top_font_size, top_color);
+		drawString(canvas, i,9,bottom, bottom_font_size, bottom_color);
+		drawString(canvas, i,9,bottom, bottom_font_size, bottom_color);
+//TODO		matrix.swapBuffers(false);
 		sleep(50);
 	}
 
 }
-*/
+
 
 /*
 * flashing_cursor
