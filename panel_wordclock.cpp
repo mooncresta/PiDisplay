@@ -1,3 +1,5 @@
+#include "PiDisplay.h"
+
 #ifdef FACE_WORDCLOCK
 
 //print a clock using words rather than numbers

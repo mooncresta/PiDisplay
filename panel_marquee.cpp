@@ -1,4 +1,6 @@
-#ifdef FACE_MARQUEE
+#include "PiDisplay.h"
+
+#ifdef PANEL_MARQUEE
 
 void marquee();
 void scrollBigMessage(char *m);
