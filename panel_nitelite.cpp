@@ -1,6 +1,7 @@
 #include "PiDisplay.h"
+using namespace rgb_matrix;
 
-void nitelite() {
+void nitelite(Canvas *canvas) {
 
   DEBUG("In nitelite\n");
 
@@ -14,7 +15,7 @@ void nitelite() {
   if(lastSecond != nowSecond)
   {
     DEBUG("Doing nite stuff\n");
-    cls();
+    cls(canvas);
     char nowBuffer[5] = "";
     sprintf(nowBuffer, "%2d%02d", nowHour, nowMinute);
     fillCircle(canvas, 7, 6, 7, Color(10, 10, 10)); // moon
@@ -23,10 +24,10 @@ void nitelite() {
     drawPixel(canvas, 30, 2, Color(10, 10, 10));
     drawPixel(canvas, 19, 6, Color(10, 10, 10));
     drawPixel(canvas, 21, 1, Color(10, 10, 10));
-    vectorNumber(nowBuffer[0] - '0', 15, 11, Color(10, 10, 10), 1, 1);
-    vectorNumber(nowBuffer[1] - '0', 19, 11, Color(10, 10, 10), 1, 1);
-    vectorNumber(nowBuffer[2] - '0', 25, 11, Color(10, 10, 10), 1, 1);
-    vectorNumber(nowBuffer[3] - '0', 29, 11, Color(10, 10, 10), 1, 1);
+    vectorNumber(canvas, nowBuffer[0] - '0', 15, 11, Color(10, 10, 10), 1, 1);
+    vectorNumber(canvas, nowBuffer[1] - '0', 19, 11, Color(10, 10, 10), 1, 1);
+    vectorNumber(canvas, nowBuffer[2] - '0', 25, 11, Color(10, 10, 10), 1, 1);
+    vectorNumber(canvas, nowBuffer[3] - '0', 29, 11, Color(10, 10, 10), 1, 1);
     drawPixel(canvas, 23, 12, (nowSecond % 2)? Color(5, 5, 5) : Color(0, 0, 0));
     drawPixel(canvas, 23, 14, (nowSecond % 2)? Color(5, 5, 5) : Color(0, 0, 0));
 //TODO    matrix.swapBuffers(false);
@@ -34,3 +35,4 @@ void nitelite() {
   lastSecond = nowSecond;
   DEBUG("Leaving nite stuff\n");
 }
+

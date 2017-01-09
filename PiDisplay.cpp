@@ -2,6 +2,7 @@
 ** Adapted and Enhanced by Mooncresta
 */
 
+
 /*  RGB Pong Clock - Andrew Holmes @pongclock
 **  Inspired by, and shamelessly derived from
 **      Nick's LED Projects
@@ -21,15 +22,7 @@
 
 #include "PiDisplay.h"
 
-// allow us to use itoa() in this scope
-extern char* itoa(int a, char* buffer, unsigned char radix);
-
 #define	PiDisplayversion	"V1.0"
-
-#define DEBUGME
-#define DEBUG(message) printf(message)
-#define DEBUGp(message) printf(message)
-#define DEBUGpln(message)
 
 const colourMap cMap[] = {
   {"RED", 255, 0,   0  },
@@ -113,12 +106,7 @@ maxLvlAvg[32];	// pseudo rolling averages for the prior few frames.
 #endif
 /***************************************/
 
-
-/*************** Night Mode ****************/
-struct TimerObject{
-  int hour, minute;
-};
-
+////// Set when on and off /////
 TimerObject clock_on  = { 7, 0};  //daytime mode start time
 TimerObject clock_off = {20, 0};  //night time mode start time
 /*******************************************/
@@ -140,6 +128,7 @@ void loop();
 
 /*************************************/
 //RGBMatrix matrix;
+// GLOBALS
 Canvas *canvas;
 Font mFont;
 
@@ -150,6 +139,8 @@ static void InterruptHandler(int signo) {
   interrupt_received = true;
   canvas->Clear();
   delete canvas;
+
+  DEBUG("EXITING .........\n");
 
   exit(0);
 }
@@ -230,11 +221,11 @@ void setup() {
 #ifdef PANEL_WEATHER
 	DEBUG("Calling quick weather\n");
 	quickWeather();
+	badWeatherCall = 0;			// counts number of unsuccessful webhook calls, reset after 3 failed calls
 #endif
 
 	clock_mode = random(0,MAX_CLOCK_MODE-1);
 	modeSwitch = millis();
-	badWeatherCall = 0;			// counts number of unsuccessful webhook calls, reset after 3 failed calls
 	updateCTime = millis();		// Reset 24hr cloud time refresh counter
 	DEBUG("Exiting Setup\n");
 }
@@ -268,36 +259,52 @@ void loop()
     //reset clock type clock_mode
     switch (clock_mode) {
       case 0:
-        normal_clock();
+        normal_clock(canvas);
         break;
       case 1:
-        pong();
+#ifdef PANEL_PONG
+        pong(canvas);
+#endif
         break;
       case 2:
-        word_clock();
+#ifdef PANEL_PONG
+        word_clock(canvas);
+#endif
         break;
       case 3:
-        jumble();
+#ifdef PANEL_JUMBLE
+        jumble(canvas);
+#endif
         break;
       case 4:
-        spectrumDisplay();
+#ifdef PANEL_SPECTRUM
+        spectrumDisplay(canvas);
+#endif
         break;
       case 5:
-        plasma();
+#ifdef PANEL_PLASMA
+        plasma(canvas);
+#endif
         break;
       case 6:
-        marquee();
+#ifdef PANEL_PLASMA
+        marquee(canvas);
+#endif
         break;
       default:
-        normal_clock();
+        normal_clock(canvas);
         break;
     }
 
     //if the mode hasn't changed, show the date
-    pacClear();
+#ifdef PANEL_PACMAN
+    pacClear(canvas);
+#endif
     if (mode_changed == 0) {
-      display_date();
-      pacClear();
+      display_date(canvas);
+#ifdef PANEL_PACMAN
+      pacClear(canvas);
+#endif
     }
     else {
       //the mode has changed, so don't bother showing the date, just go to the new mode.
@@ -309,12 +316,12 @@ void loop()
     DEBUG("Power Mode is NOT 1\n");
     if(mode_changed == 1)
     {
-	      cls(canvas);
+        cls(canvas);
 //TODO add back
 //      matrix.swapBuffers(false);
-      mode_changed = 0;
+        mode_changed = 0;
     }
-    nitelite();
+    nitelite(canvas);
   }
   DEBUG("Leaving loop\n");
 }
@@ -396,8 +403,8 @@ int setMode(string command)
 
 		p = i+1;
 		}
-	return 1;
 */
+	return 1;
 }
 
 /*

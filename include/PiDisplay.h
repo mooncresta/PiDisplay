@@ -6,8 +6,8 @@
 #include "led-matrix.h" // Hardware-specific library
 #include "graphics.h"
 #include "fix_fft.h"
-#include "font3x5.h"
-#include "font5x5.h"
+//#include "font3x5.h"
+//#include "font5x5.h"
 #include <iostream>
 #include "string.h"
 #include <unistd.h>
@@ -22,12 +22,13 @@
 #ifndef PiDisplay_H
 #define PiDisplay_H
 
-using rgb_matrix::GPIO;
-using rgb_matrix::RGBMatrix;
-using rgb_matrix::Color;
-using rgb_matrix::Canvas;
-using rgb_matrix::Font;
+using namespace rgb_matrix;
 using namespace std;
+
+#define DEBUGME
+#define DEBUG(message) printf(message)
+#define DEBUGp(message) printf(message)
+#define DEBUGpln(message)
 
 /********* Defines to enable Panels *****/
 //#define PANEL_PACMAN
@@ -103,33 +104,29 @@ void getWeather();
 void processWeather(const char *name, const char *data);
 void showWeather();
 void drawWeatherIcon(uint8_t x, uint8_t y, int id);
-void scrollBigMessage(char *m);
 void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,uint8_t bottom_font_size, uint16_t top_color, uint16_t bottom_color);
-void pacClear();
-void pacMan();
+void pacClear(Canvas *canvas);
+void pacMan(Canvas *canvas);
 void drawPac(int x, int y, int z);
 void drawGhost( int x, int y, int color);
 void drawScaredGhost( int x, int y);
-void cls();
-void pong();
+void pong(Canvas *canvas);
 unsigned short pong_get_ball_endpoint(float tempballpos_x, float  tempballpos_y, float  tempballvel_x, float tempballvel_y);
-void normal_clock();
-void vectorNumber(int n, int x, int y, Color color, float scale_x, float scale_y);
-void word_clock();
-void jumble();
-void display_date();
-void flashing_cursor(unsigned short xpos, unsigned short ypos, unsigned short cursor_width, unsigned short cursor_height, unsigned short repeats);
-void drawString(int x, int y, char* c,uint8_t font_size, uint16_t color);
-void drawString(int x, int y, char* c,uint8_t font_size, Color color);
-void drawChar(Canvas *canvas, int x, int y, char c, uint8_t font_size, Color color);
-void drawChar(int x, int y, char c, uint8_t font_size, uint16_t color);
+void normal_clock(Canvas *canvas);
+void word_clock(Canvas *canvas);
+void jumble(Canvas *canvas);
+void display_date(Canvas *canvas);
+//void drawString(int x, int y, char* c,uint8_t font_size, uint16_t color);
+//void drawString(int x, int y, char* c,uint8_t font_size, Color color);
+//void drawChar(int x, int y, char c, uint8_t font_size, uint16_t color);
 int calc_font_displacement(uint8_t font_size);
-void spectrumDisplay();
-void plasma();
-void marquee();
-void nitelite();
+void spectrumDisplay(Canvas *canvas);
+void plasma(Canvas *canvas);
+void marquee(Canvas *canvas);
+void nitelite(Canvas *canvas);
 int timerEvaluate(const struct TimerObject on_time, const struct TimerObject off_time, const unsigned int currentTime);
 time_t tmConvert_t(int YYYY, unsigned short MM, unsigned short DD, unsigned short hh, unsigned short mm, unsigned short ss);
+void vectorNumber(Canvas *canvas, int n, int x, int y, Color color, float scale_x, float scale_y);
 
 namespace rgb_matrix {
 //void drawFastVLine(Canvas *canvas, int16_t x, int16_t y, int16_t h, Color color);
@@ -138,12 +135,22 @@ void drawRect(Canvas *canvas, int16_t x, int16_t y, int16_t w, int16_t h, Color 
 void fillRect(Canvas *canvas, int16_t x, int16_t y, int16_t w, int16_t h, Color color);
 void drawBitmap(Canvas *canvas, int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, Color color);
 void drawPixel(Canvas *canvas, int16_t x, int16_t y, Color color);
-void setTextSize(Canvas *canvas, int16_t s);
+void setTextSize(Canvas *canvas, int s);
 void setTextWrap(Canvas *canvas, bool f);
 void setTextColor(Canvas *canvas, Color c);
-void setCursor(Canvas *canvas, int16_t x, int16_t y);
+void setCursor(Canvas *canvas, int x, int y);
 void fillCircle(Canvas *canvas, int16_t x0, int16_t y0, int16_t r, Color color);
 void fillCircleHelper(Canvas *canvas, int16_t x0, int16_t y0, int16_t r, uint8_t cornername, int16_t delta, Color color);
+void  scrollBigMessage(Canvas *canvas, char *m);
+void flashing_cursor(Canvas *canvas, unsigned short xpos, unsigned short ypos, unsigned short cursor_width, unsigned short cursor_height, unsigned short repeats);
+void cls(Canvas *canvas);
+void drawString(Canvas *canvas, int x, int y, char* c,uint8_t font_size, Color color);
+void drawChar(Canvas *canvas, int x, int y, char c, uint8_t font_size, Color color);
+
+};
+
+struct TimerObject{
+  int hour, minute;
 };
 
 class TimeClass {
@@ -174,9 +181,14 @@ public:
 	static void    setTime(time_t t);			// set the given time as unix/rtc time
 };
 
+extern char* itoa(int a, char* buffer, unsigned char radix);
 extern TimeClass Time;	//eg. usage: Time.day();
-
-// ******
-
+extern Font mFont;
+extern int mode_changed;
+extern uint16_t showClock;
+extern unsigned long modeSwitch;
+extern unsigned long updateCTime;
+extern bool mode_quick;
+extern int clock_mode;
 
 #endif

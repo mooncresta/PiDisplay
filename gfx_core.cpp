@@ -1,11 +1,15 @@
 #include "PiDisplay.h"
+#include "font5x5.h"
+#include "font3x5.h"
 
-
+// Core Graphics functions
 
 using namespace rgb_matrix;
 using namespace std;
 
 namespace rgb_matrix {
+
+
 // Adafruit GFX Functions
 void drawBitmap(Canvas *canvas, int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, Color color)
 {
@@ -49,19 +53,18 @@ void fillRect(Canvas *canvas, int16_t x, int16_t y, int16_t w, int16_t h,
   }
 }
 
-void setCursor(Canvas *canvas, int16_t x, int16_t y)
-{
+// Clear Screen - Set to black
+void cls(Canvas *canvas){
+    canvas->Clear();
 }
 
-void setTextColor(Canvas *canvas, Color c)
-{
-}
+
 
 void setTextWrap(Canvas *canvas, bool f)
 {
 }
 
-void setTextSize(Canvas *canvas, int16_t s)
+void setTextSize(Canvas *canvas, int s)
 {
 }
 
@@ -104,20 +107,21 @@ void fillCircleHelper(Canvas *canvas, int16_t x0, int16_t y0, int16_t r,
       drawFastVLine(canvas, x0-x, y0-y, 2*y+1+delta, color);
       drawFastVLine(canvas, x0-y, y0-x, 2*x+1+delta, color);
     }
-  }
+  } //endwhile
 }
-} // End of namespacevoid scrollBigMessage(char *m){
+
+void  scrollBigMessage(Canvas *canvas, char *m){
 
 	setTextSize(canvas, 1);
 	int l = (strlen(m)*-6) - 32;
 	for(int i = 32; i > l; i--){
 		cls(canvas);
-		setCursor(canvas, i,1);
+		setCursor(canvas, i, 1);
 		setTextColor(canvas, Color(1,1,1));
 // TODO		matrix.print(m);
 //TODO		matrix.swapBuffers(false);
 		sleep(50);
-   }
+        }
 }
 
 /*
@@ -143,16 +147,11 @@ void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,uint8_t bottom
 }
 */
 
-// Clear Screen - Set to black
-void cls(Canvas *canvas){
-    canvas->Clear();
-}
-
 /*
 * flashing_cursor
 * print a flashing_cursor at xpos, ypos and flash it repeats times
 */
-void flashing_cursor(unsigned short xpos, unsigned short ypos, unsigned short cursor_width, unsigned short cursor_height, unsigned short repeats)
+void flashing_cursor(Canvas *canvas, unsigned short xpos, unsigned short ypos, unsigned short cursor_width, unsigned short cursor_height, unsigned short repeats)
 {
 	for (unsigned short r = 0; r <= repeats; r++) {
 		fillRect(canvas, xpos,ypos,cursor_width, cursor_height, Color(0,3,0));
@@ -172,17 +171,36 @@ void flashing_cursor(unsigned short xpos, unsigned short ypos, unsigned short cu
 		if (repeats > 0) {
 			sleep(400);
 		}
-//		Spark.process();	//Give the background process some lovin'
 	}
 }
-void drawString(int x, int y, char* c,uint8_t font_size, Color color)
+
+void setCursor(Canvas *canvas, int x, int y)
+{
+}
+
+void setTextColor(Canvas *canvas, Color c)
+{
+}
+
+
+void drawString(Canvas *canvas, int x, int y, char* c,uint8_t font_size, Color color)
 {
 // TODO make font reflect size
 
         // x & y are positions, c-> pointer to string to disp, update_s: false(write to mem), true: write to disp
         //font_size : 51(ascii value for 3), 53(5) and 56(8)
-	DrawText(canvas, mFont, 2,2, color, NULL, c);
+//TODO	DrawText(canvas, mFont, 2,2, color, NULL, c);
 }
+
+
+void drawChar(Canvas *canvas, int x, int y, char c, uint8_t font_size, Color color)  // Display the data depending on the font size mentioned in the font_size variable
+{
+   int i;
+   i = mFont.DrawGlyph(canvas, x, y, color, c);
+}
+
+
+} // End of namespace
 
 
 void drawString(int x, int y, char* c,uint8_t font_size, uint16_t color)
@@ -216,14 +234,8 @@ int calc_font_displacement(uint8_t font_size)
 	}
 }
 
-void drawChar(Canvas *canvas, int x, int y, char c, uint8_t font_size, Color color)  // Display the data depending on the font size mentioned in the font_size variable
-{
- int i;
- i = mFont.DrawGlyph(canvas, x, y, color, c);
-}
-
-void drawChar(int x, int y, char c, uint8_t font_size, uint16_t color)  // Display the data depending on the font size mentioned in the font_size variable
-{
+// Display the data depending on the font size mentioned in the font_size variable
+void drawChar(int x, int y, char c, uint8_t font_size, uint16_t color) {
 /*
 	uint8_t dots;
 	if ((c >= 'A' && c <= 'Z') ||
@@ -310,3 +322,4 @@ void drawChar(int x, int y, char c, uint8_t font_size, uint16_t color)  // Displ
 	}
 */
 }
+

@@ -11,9 +11,6 @@
 using namespace rgb_matrix;
 using namespace std;
 
-extern char* itoa(int num, char* str, unsigned char radix) {
-    snprintf(str, sizeof(str), "%d", num);
-}
 
 int random(int low, int high)
 {
