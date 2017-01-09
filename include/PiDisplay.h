@@ -6,7 +6,6 @@
 #include "led-matrix.h" // Hardware-specific library
 #include "graphics.h"
 #include "fix_fft.h"
-#include "blinky.h"
 #include "font3x5.h"
 #include "font5x5.h"
 #include <iostream>
