@@ -24,6 +24,10 @@ void drawBitmap(Canvas *canvas, int16_t x, int16_t y, const uint8_t *bitmap, int
   }
 }
 
+void swapBuffers(boolean copy) {
+    // Move back canvas active
+    canvas = SwapOnVSync(canvas);
+}
 void drawFastVLine(Canvas *canvas, int16_t x, int16_t y, int16_t h, Color color)
 {
   // Update in subclasses if desired!
@@ -322,4 +326,3 @@ void drawChar(int x, int y, char c, uint8_t font_size, uint16_t color) {
 	}
 */
 }
-

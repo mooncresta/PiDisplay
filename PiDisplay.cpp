@@ -129,7 +129,8 @@ void loop();
 /*************************************/
 //RGBMatrix matrix;
 // GLOBALS
-Canvas *canvas;
+RGBMatrix *matrix;  // Active matrix
+Canvas *canvas; // Active Canvas
 Font mFont;
 
 volatile bool interrupt_received = false;
@@ -155,7 +156,12 @@ int main(int argc, char *argv[]) {
   defaults.chain_length = 1;
   defaults.parallel = 1;
   defaults.show_refresh_rate = false;
-  canvas = rgb_matrix::CreateMatrixFromFlags(&argc, &argv, &defaults);
+  matrix = rgb_matrix::CreateMatrixFromFlags(&argc, &argv, &defaults);
+  if (matrix == NULL)
+    return 1;
+
+  // Drawing Canvas
+  canvas = matrix->CreateFrameCanvas();
   if (canvas == NULL)
     return 1;
 

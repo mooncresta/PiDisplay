@@ -30,9 +30,8 @@ void nitelite(Canvas *canvas) {
     vectorNumber(canvas, nowBuffer[3] - '0', 29, 11, Color(10, 10, 10), 1, 1);
     drawPixel(canvas, 23, 12, (nowSecond % 2)? Color(5, 5, 5) : Color(0, 0, 0));
     drawPixel(canvas, 23, 14, (nowSecond % 2)? Color(5, 5, 5) : Color(0, 0, 0));
-//TODO    matrix.swapBuffers(false);
+    matrix->swapBuffers(false);
   }
   lastSecond = nowSecond;
   DEBUG("Leaving nite stuff\n");
 }
-

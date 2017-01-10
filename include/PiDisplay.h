@@ -146,7 +146,7 @@ void flashing_cursor(Canvas *canvas, unsigned short xpos, unsigned short ypos, u
 void cls(Canvas *canvas);
 void drawString(Canvas *canvas, int x, int y, char* c,uint8_t font_size, Color color);
 void drawChar(Canvas *canvas, int x, int y, char c, uint8_t font_size, Color color);
-
+void swapBuffers(boolean copy);
 };
 
 struct TimerObject{
@@ -190,5 +190,7 @@ extern unsigned long modeSwitch;
 extern unsigned long updateCTime;
 extern bool mode_quick;
 extern int clock_mode;
+extern RGBMatrix *matrix;
+Canvas *canvas; // Active Canvas
 
 #endif
