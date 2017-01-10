@@ -35,10 +35,23 @@ const colourMap cMap[] = {
   {"BLACK",0, 0,   0  }
 };
 
+/********* FONT STUFF ********/
 
+// Font directory - assumes it's as per standard library name
+#define FONT_DIR "./rpi-rgb-led-matrix/fonts"  
 
-/************* Using DST ?? ***************/
+struct t_FontLib {
+	char[20] name;
+	int width;
+	int height;
+	Font *ptr;
+};
 
+#define NUM_FONTS 2   // To match below
+const t_FontLib FontLib[] = {
+	{"5x7.bdf", 5, 7, NULL},
+	{"helvR12.bdf", 0, 0, NULL}
+};
 // Select North America or Central Europe...
 
 //#define DST_NORTH_AMERICA
@@ -198,15 +211,23 @@ void setup() {
 
 // TODO - sync RTC
 
-//	matrix.begin();
 	setTextWrap(false); // Allow text to run off right edge
 	setTextSize(1);
 	setTextColor(Color(210, 210, 210));
-
+   	// Setup Fonts
+	char fontname[30];
+	for(int i=0; i<=NUM_FONTS; i++) {
+	    FontLib[i].ptr = new Font;
+	    sprintf(fontname, "%s%s", FONT_DIR, FontLib[i].name); 
+	    if (!font->LoadFont(fontname)) {
+              printf("Couldn't load font\n");
+	      return;
+            }
+	}
+	
 #if defined useFFT
 	memset(peak, 0, sizeof(peak));
 	memset(col , 0, sizeof(col));
-
 	for(uint8_t i=0; i<32; i++) {
 		minLvlAvg[i] = 0;
 		maxLvlAvg[i] = 255;
@@ -216,7 +237,6 @@ void setup() {
 //	randomSeed(analogRead(A7));
 
   DEBUG("Clearing Screen\n");
-	// Clear Matrix
   canvas->Clear();
 
 #ifdef PANEL_PACMAN
