@@ -202,19 +202,15 @@ void drawString(int x, int y, char* c,uint8_t font_size, Color color)
  /*
   * Load font. This needs to be a filename with a bdf bitmap font.
   */
-//TODO Don't load font every time !!!	
-        rgb_matrix::Font font;
-        if (!font.LoadFont("./fonts/5x7.bdf")) {
-              printf("Couldn't load font\n");
-	      return;
-        }
- fprintf(stderr, "Font height is '%d'\n", font.height());
+  int font_index = 0; //TODO - use size to select
+	
+ fprintf(stderr, "Font height is '%d'\n", FontLib[font_index].ptr->height());
  fprintf(stderr, "X is '%d'\n", x);
- fprintf(stderr, "Y is '%d'\n", y+font.baseline());
+ fprintf(stderr, "Y is '%d'\n", y+FontLib[font_index].ptr->.baseline());
 
 //	DrawText(canvas, mFont, 2,2, color, NULL, c);
 //	rgb_matrix::DrawText(canvas, font, x,y + font.baseline(), color, NULL, c);
-	rgb_matrix::DrawText(canvas, font, x,y + font.baseline(), color, c);
+	rgb_matrix::DrawText(canvas, FontLib[font_index].ptr, x,y + FontLib[font_index].ptr->baseline(), color, c);
 }
 
 
