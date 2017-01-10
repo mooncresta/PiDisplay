@@ -104,49 +104,50 @@ void getWeather();
 void processWeather(const char *name, const char *data);
 void showWeather();
 void drawWeatherIcon(uint8_t x, uint8_t y, int id);
-void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,uint8_t bottom_font_size, uint16_t top_color, uint16_t bottom_color);
-void pacClear(Canvas *canvas);
-void pacMan(Canvas *canvas);
+void pacClear();
+void pacMan();
 void drawPac(int x, int y, int z);
 void drawGhost( int x, int y, int color);
 void drawScaredGhost( int x, int y);
-void pong(Canvas *canvas);
+void pong();
 unsigned short pong_get_ball_endpoint(float tempballpos_x, float  tempballpos_y, float  tempballvel_x, float tempballvel_y);
-void normal_clock(Canvas *canvas);
-void word_clock(Canvas *canvas);
-void jumble(Canvas *canvas);
-void display_date(Canvas *canvas);
+void normal_clock();
+void word_clock();
+void jumble();
+void display_date();
 //void drawString(int x, int y, char* c,uint8_t font_size, uint16_t color);
 //void drawString(int x, int y, char* c,uint8_t font_size, Color color);
 //void drawChar(int x, int y, char c, uint8_t font_size, uint16_t color);
 int calc_font_displacement(uint8_t font_size);
-void spectrumDisplay(Canvas *canvas);
-void plasma(Canvas *canvas);
-void marquee(Canvas *canvas);
-void nitelite(Canvas *canvas);
+void spectrumDisplay();
+void plasma();
+void marquee();
+void nitelite();
 int timerEvaluate(const struct TimerObject on_time, const struct TimerObject off_time, const unsigned int currentTime);
 time_t tmConvert_t(int YYYY, unsigned short MM, unsigned short DD, unsigned short hh, unsigned short mm, unsigned short ss);
-void vectorNumber(Canvas *canvas, int n, int x, int y, Color color, float scale_x, float scale_y);
+void vectorNumber(int n, int x, int y, Color color, float scale_x, float scale_y);
 
 namespace rgb_matrix {
 //void drawFastVLine(Canvas *canvas, int16_t x, int16_t y, int16_t h, Color color);
 //void drawFastHLine(Canvas *canvas, int16_t x, int16_t y, int16_t w, Color color);
-void drawRect(Canvas *canvas, int16_t x, int16_t y, int16_t w, int16_t h, Color color);
-void fillRect(Canvas *canvas, int16_t x, int16_t y, int16_t w, int16_t h, Color color);
-void drawBitmap(Canvas *canvas, int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, Color color);
-void drawPixel(Canvas *canvas, int16_t x, int16_t y, Color color);
-void setTextSize(Canvas *canvas, int s);
-void setTextWrap(Canvas *canvas, bool f);
-void setTextColor(Canvas *canvas, Color c);
-void setCursor(Canvas *canvas, int x, int y);
-void fillCircle(Canvas *canvas, int16_t x0, int16_t y0, int16_t r, Color color);
-void fillCircleHelper(Canvas *canvas, int16_t x0, int16_t y0, int16_t r, uint8_t cornername, int16_t delta, Color color);
-void  scrollBigMessage(Canvas *canvas, char *m);
-void flashing_cursor(Canvas *canvas, unsigned short xpos, unsigned short ypos, unsigned short cursor_width, unsigned short cursor_height, unsigned short repeats);
-void cls(Canvas *canvas);
-void drawString(Canvas *canvas, int x, int y, char* c,uint8_t font_size, Color color);
-void drawChar(Canvas *canvas, int x, int y, char c, uint8_t font_size, Color color);
+void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, Color color);
+void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, Color color);
+void drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, Color color);
+void drawPixel(int16_t x, int16_t y, Color color);
+void setTextSize(int s);
+void setTextWrap(bool f);
+void setTextColor(Color c);
+void setCursor(int x, int y);
+void drawCircle(int16_t x0, int16_t y0, int16_t r, Color color);
+void fillCircle(int16_t x0, int16_t y0, int16_t r, Color color);
+void fillCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t cornername, int16_t delta, Color color);
+void  scrollBigMessage(char *m);
+void flashing_cursor(unsigned short xpos, unsigned short ypos, unsigned short cursor_width, unsigned short cursor_height, unsigned short repeats);
+void cls();
+void drawString(int x, int y, char* c,uint8_t font_size, Color color);
+void drawChar(int x, int y, char c, uint8_t font_size, Color color);
 void swapBuffers(boolean copy);
+void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,uint8_t bottom_font_size, Color top_color, Color bottom_color);
 };
 
 struct TimerObject{
@@ -191,6 +192,6 @@ extern unsigned long updateCTime;
 extern bool mode_quick;
 extern int clock_mode;
 extern RGBMatrix *matrix;
-Canvas *canvas; // Active Canvas
+extern FrameCanvas *canvas; // Active Canvas
 
 #endif

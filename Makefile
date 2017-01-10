@@ -20,8 +20,8 @@ LDFLAGS+=-L$(RGB_LIBDIR) -l$(RGB_LIBRARY_NAME) -lrt -lm -lpthread
 
 all : $(BINARIES)
 
-test : test.o bridge.o $(RGB_LIBRARY)
-	$(CXX) $(RGB_INCDIR) $(CXXFLAGS) test.o bridge.o -o $@ $(LDFLAGS)
+test : test.o bridge.o gfx_core.o utils.o time.o $(RGB_LIBRARY)
+	$(CXX) $(RGB_INCDIR) $(CXXFLAGS) test.o bridge.o gfx_core.o utils.o time.o -o $@ $(LDFLAGS)
 
 PiDisplay : $(OBJECTS) $(RGB_LIBRARY)
 	$(CXX) $(RGB_INCDIR) $(CXXFLAGS) $(OBJECTS) -o $@ $(LDFLAGS)

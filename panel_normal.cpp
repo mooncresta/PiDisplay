@@ -1,13 +1,13 @@
 #include "PiDisplay.h"
 
-void normal_clock(Canvas *canvas)
+void normal_clock()
 {
 	DEBUG("in normal_clock\n");
-	setTextWrap(canvas, false); // Allow text to run off right edge
-	setTextSize(canvas, 2);
-	setTextColor(canvas, Color(2, 3, 2));
+	setTextWrap(false); // Allow text to run off right edge
+	setTextSize(2);
+	setTextColor(Color(2, 3, 2));
 
-	cls(canvas);
+	cls();
 	unsigned short hours = Time.hour();
 	unsigned short mins = Time.minute();
 
@@ -38,13 +38,13 @@ void normal_clock(Canvas *canvas)
 	int showTime = Time.now();
 
 	while((Time.now() - showTime) < showClock) {
-		cls(canvas);
+		cls();
 
 		if (mode_changed == 1)
 		return;
 		if(mode_quick){
 			mode_quick = false;
-			display_date(canvas);
+			display_date();
 #ifdef PANEL_WEATHER
 			quickWeather();
 #endif
@@ -77,24 +77,24 @@ void normal_clock(Canvas *canvas)
 
 		//update the display
 		//shadows first
-		vectorNumber(canvas, (lastHourBuffer[0]-'0'), 2, 2+msLastHourPosition, Color(0,0,1),scale_x,scale_y);
-		vectorNumber(canvas, (lastHourBuffer[1]-'0'), 9, 2+lsLastHourPosition, Color(0,0,1),scale_x,scale_y);
-		vectorNumber(canvas, (buffer[0]-'0'), 2, 2+msHourPosition, Color(0,0,1),scale_x,scale_y);
-		vectorNumber(canvas, (buffer[1]-'0'), 9, 2+lsHourPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((lastHourBuffer[0]-'0'), 2, 2+msLastHourPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((lastHourBuffer[1]-'0'), 9, 2+lsLastHourPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((buffer[0]-'0'), 2, 2+msHourPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((buffer[1]-'0'), 9, 2+lsHourPosition, Color(0,0,1),scale_x,scale_y);
 
-		vectorNumber(canvas, (lastHourBuffer[0]-'0'), 1, 1+msLastHourPosition, Color(1,1,1),scale_x,scale_y);
-		vectorNumber(canvas, (lastHourBuffer[1]-'0'), 8, 1+lsLastHourPosition, Color(1,1,1),scale_x,scale_y);
-		vectorNumber(canvas, (buffer[0]-'0'), 1, 1+msHourPosition, Color(1,1,1),scale_x,scale_y);
-		vectorNumber(canvas, (buffer[1]-'0'), 8, 1+lsHourPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((lastHourBuffer[0]-'0'), 1, 1+msLastHourPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((lastHourBuffer[1]-'0'), 8, 1+lsLastHourPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((buffer[0]-'0'), 1, 1+msHourPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((buffer[1]-'0'), 8, 1+lsHourPosition, Color(1,1,1),scale_x,scale_y);
 
 		if(c1==0) lastHourBuffer[0]=buffer[0];
 		if(c2==0) lastHourBuffer[1]=buffer[1];
 
-		fillRect(canvas, 16,5,2,2,Color(0,0,Time.second()%2));
-		fillRect(canvas, 16,11,2,2,Color(0,0,Time.second()%2));
+		fillRect(16,5,2,2,Color(0,0,Time.second()%2));
+		fillRect(16,11,2,2,Color(0,0,Time.second()%2));
 
-		fillRect(canvas, 15,4,2,2,Color(Time.second()%2,Time.second()%2,Time.second()%2));
-		fillRect(canvas, 15,10,2,2,Color(Time.second()%2,Time.second()%2,Time.second()%2));
+		fillRect(15,4,2,2,Color(Time.second()%2,Time.second()%2,Time.second()%2));
+		fillRect(15,10,2,2,Color(Time.second()%2,Time.second()%2,Time.second()%2));
 
 		itoa (mins, buffer, 10);
 		if (mins < 10) {
@@ -112,20 +112,20 @@ void normal_clock(Canvas *canvas)
 		lsMinPosition = c4;
 		lsLastMinPosition = c4 + 17;
 
-		vectorNumber(canvas, (buffer[0]-'0'), 19, 2+msMinPosition, Color(0,0,1),scale_x,scale_y);
-		vectorNumber(canvas, (buffer[1]-'0'), 26, 2+lsMinPosition, Color(0,0,1),scale_x,scale_y);
-		vectorNumber(canvas, (lastMinBuffer[0]-'0'), 19, 2+msLastMinPosition, Color(0,0,1),scale_x,scale_y);
-		vectorNumber(canvas, (lastMinBuffer[1]-'0'), 26, 2+lsLastMinPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((buffer[0]-'0'), 19, 2+msMinPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((buffer[1]-'0'), 26, 2+lsMinPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((lastMinBuffer[0]-'0'), 19, 2+msLastMinPosition, Color(0,0,1),scale_x,scale_y);
+		vectorNumber((lastMinBuffer[1]-'0'), 26, 2+lsLastMinPosition, Color(0,0,1),scale_x,scale_y);
 
-		vectorNumber(canvas, (buffer[0]-'0'), 18, 1+msMinPosition, Color(1,1,1),scale_x,scale_y);
-		vectorNumber(canvas, (buffer[1]-'0'), 25, 1+lsMinPosition, Color(1,1,1),scale_x,scale_y);
-		vectorNumber(canvas, (lastMinBuffer[0]-'0'), 18, 1+msLastMinPosition, Color(1,1,1),scale_x,scale_y);
-		vectorNumber(canvas, (lastMinBuffer[1]-'0'), 25, 1+lsLastMinPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((buffer[0]-'0'), 18, 1+msMinPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((buffer[1]-'0'), 25, 1+lsMinPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((lastMinBuffer[0]-'0'), 18, 1+msLastMinPosition, Color(1,1,1),scale_x,scale_y);
+		vectorNumber((lastMinBuffer[1]-'0'), 25, 1+lsLastMinPosition, Color(1,1,1),scale_x,scale_y);
 
 		if(c3==0) lastMinBuffer[0]=buffer[0];
 		if(c4==0) lastMinBuffer[1]=buffer[1];
 
-//TODO		swapBuffers(false);
+		swapBuffers(false);
 	}
 }
 

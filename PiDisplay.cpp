@@ -130,7 +130,7 @@ void loop();
 //RGBMatrix matrix;
 // GLOBALS
 RGBMatrix *matrix;  // Active matrix
-Canvas *canvas; // Active Canvas
+FrameCanvas *canvas; // Active Canvas
 Font mFont;
 
 volatile bool interrupt_received = false;
@@ -139,7 +139,7 @@ volatile bool interrupt_received = false;
 static void InterruptHandler(int signo) {
   interrupt_received = true;
   canvas->Clear();
-  delete canvas;
+  delete matrix;
 
   DEBUG("EXITING .........\n");
 
@@ -199,9 +199,9 @@ void setup() {
 // TODO - sync RTC
 
 //	matrix.begin();
-	setTextWrap(canvas, false); // Allow text to run off right edge
-	setTextSize(canvas, 1);
-	setTextColor(canvas,Color(210, 210, 210));
+	setTextWrap(false); // Allow text to run off right edge
+	setTextSize(1);
+	setTextColor(Color(210, 210, 210));
 
 #if defined useFFT
 	memset(peak, 0, sizeof(peak));
@@ -265,51 +265,51 @@ void loop()
     //reset clock type clock_mode
     switch (clock_mode) {
       case 0:
-        normal_clock(canvas);
+        normal_clock();
         break;
       case 1:
 #ifdef PANEL_PONG
-        pong(canvas);
+        pong();
 #endif
         break;
       case 2:
 #ifdef PANEL_PONG
-        word_clock(canvas);
+        word_clock();
 #endif
         break;
       case 3:
 #ifdef PANEL_JUMBLE
-        jumble(canvas);
+        jumble();
 #endif
         break;
       case 4:
 #ifdef PANEL_SPECTRUM
-        spectrumDisplay(canvas);
+        spectrumDisplay();
 #endif
         break;
       case 5:
 #ifdef PANEL_PLASMA
-        plasma(canvas);
+        plasma();
 #endif
         break;
       case 6:
 #ifdef PANEL_PLASMA
-        marquee(canvas);
+        marquee();
 #endif
         break;
       default:
-        normal_clock(canvas);
+        normal_clock();
         break;
     }
 
     //if the mode hasn't changed, show the date
 #ifdef PANEL_PACMAN
-    pacClear(canvas);
+    pacClear();
 #endif
     if (mode_changed == 0) {
-      display_date(canvas);
+      display_date();
 #ifdef PANEL_PACMAN
-      pacClear(canvas);
+      pacClear();
 #endif
     }
     else {
@@ -322,12 +322,12 @@ void loop()
     DEBUG("Power Mode is NOT 1\n");
     if(mode_changed == 1)
     {
-        cls(canvas);
+        cls();
 //TODO add back
-//      matrix.swapBuffers(false);
+    swapBuffers(false);
         mode_changed = 0;
     }
-    nitelite(canvas);
+    nitelite();
   }
   DEBUG("Leaving loop\n");
 }

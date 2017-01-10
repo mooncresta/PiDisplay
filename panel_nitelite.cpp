@@ -1,7 +1,7 @@
 #include "PiDisplay.h"
 using namespace rgb_matrix;
 
-void nitelite(Canvas *canvas) {
+void nitelite() {
 
   DEBUG("In nitelite\n");
 
@@ -15,22 +15,22 @@ void nitelite(Canvas *canvas) {
   if(lastSecond != nowSecond)
   {
     DEBUG("Doing nite stuff\n");
-    cls(canvas);
+    cls();
     char nowBuffer[5] = "";
     sprintf(nowBuffer, "%2d%02d", nowHour, nowMinute);
-    fillCircle(canvas, 7, 6, 7, Color(10, 10, 10)); // moon
-    fillCircle(canvas, 9, 4, 7, Color(0, 0, 0));    // cutout the crescent
-    drawPixel(canvas, 16, 3, Color(10, 10, 10));    // stars
-    drawPixel(canvas, 30, 2, Color(10, 10, 10));
-    drawPixel(canvas, 19, 6, Color(10, 10, 10));
-    drawPixel(canvas, 21, 1, Color(10, 10, 10));
-    vectorNumber(canvas, nowBuffer[0] - '0', 15, 11, Color(10, 10, 10), 1, 1);
-    vectorNumber(canvas, nowBuffer[1] - '0', 19, 11, Color(10, 10, 10), 1, 1);
-    vectorNumber(canvas, nowBuffer[2] - '0', 25, 11, Color(10, 10, 10), 1, 1);
-    vectorNumber(canvas, nowBuffer[3] - '0', 29, 11, Color(10, 10, 10), 1, 1);
-    drawPixel(canvas, 23, 12, (nowSecond % 2)? Color(5, 5, 5) : Color(0, 0, 0));
-    drawPixel(canvas, 23, 14, (nowSecond % 2)? Color(5, 5, 5) : Color(0, 0, 0));
-    matrix->swapBuffers(false);
+    fillCircle(7, 6, 7, Color(10, 10, 10)); // moon
+    fillCircle( 9, 4, 7, Color(0, 0, 0));    // cutout the crescent
+    drawPixel(16, 3, Color(10, 10, 10));    // stars
+    drawPixel(30, 2, Color(10, 10, 10));
+    drawPixel(19, 6, Color(10, 10, 10));
+    drawPixel(21, 1, Color(10, 10, 10));
+    vectorNumber(nowBuffer[0] - '0', 15, 11, Color(10, 10, 10), 1, 1);
+    vectorNumber(nowBuffer[1] - '0', 19, 11, Color(10, 10, 10), 1, 1);
+    vectorNumber(nowBuffer[2] - '0', 25, 11, Color(10, 10, 10), 1, 1);
+    vectorNumber(nowBuffer[3] - '0', 29, 11, Color(10, 10, 10), 1, 1);
+    drawPixel(23, 12, (nowSecond % 2)? Color(5, 5, 5) : Color(0, 0, 0));
+    drawPixel(23, 14, (nowSecond % 2)? Color(5, 5, 5) : Color(0, 0, 0));
+    swapBuffers(false);
   }
   lastSecond = nowSecond;
   DEBUG("Leaving nite stuff\n");

@@ -11,7 +11,7 @@ namespace rgb_matrix {
 
 
 // Adafruit GFX Functions
-void drawBitmap(Canvas *canvas, int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, Color color)
+void drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, Color color)
 {
   int16_t i, j, byteWidth = (w + 7) / 8;
 
@@ -26,68 +26,72 @@ void drawBitmap(Canvas *canvas, int16_t x, int16_t y, const uint8_t *bitmap, int
 
 void swapBuffers(boolean copy) {
     // Move back canvas active
-    canvas = SwapOnVSync(canvas);
+    canvas = matrix->SwapOnVSync(canvas);
 }
-void drawFastVLine(Canvas *canvas, int16_t x, int16_t y, int16_t h, Color color)
+void drawFastVLine(int16_t x, int16_t y, int16_t h, Color color)
 {
   // Update in subclasses if desired!
   DrawLine(canvas, x, y, x, y+h-1, color);
 }
 
-void drawFastHLine(Canvas *canvas, int16_t x, int16_t y, int16_t w, Color color)
+void drawFastHLine(int16_t x, int16_t y, int16_t w, Color color)
 {
   // Update in subclasses if desired!
   DrawLine(canvas, x, y, x+w-1, y, color);
 }
 
 // Draw a rectangle
-void drawRect(Canvas *canvas, int16_t x, int16_t y, int16_t w, int16_t h, Color color)
+void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, Color color)
 {
-  drawFastHLine(canvas, x, y, w, color);
-  drawFastHLine(canvas, x, y+h-1, w, color);
-  drawFastVLine(canvas, x, y, h, color);
-  drawFastVLine(canvas, x+w-1, y, h, color);
+  drawFastHLine(x, y, w, color);
+  drawFastHLine(x, y+h-1, w, color);
+  drawFastVLine(x, y, h, color);
+  drawFastVLine(x+w-1, y, h, color);
 }
 
-void fillRect(Canvas *canvas, int16_t x, int16_t y, int16_t w, int16_t h,
+void fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
 			    Color color) {
   // Update in subclasses if desired!
   for (int16_t i=x; i<x+w; i++) {
-    drawFastVLine(canvas, i, y, h, color);
+    drawFastVLine(i, y, h, color);
   }
 }
 
 // Clear Screen - Set to black
-void cls(Canvas *canvas){
+void cls(){
     canvas->Clear();
 }
 
 
 
-void setTextWrap(Canvas *canvas, bool f)
+void setTextWrap(bool f)
 {
-	wrap = f;
+//TODO	wrap = f;
 }
 
-void setTextSize(Canvas *canvas, int s)
+void setTextSize(int s)
 {
-	 textsize = (s > 0) ? s : 1;
+//TODO	 textsize = (s > 0) ? s : 1;
 }
 
-void drawPixel(Canvas *canvas, int16_t x, int16_t y, Color color)
+void drawPixel(int16_t x, int16_t y, Color color)
 {
     canvas->SetPixel(x,y, color.r,color.g, color.b);
 }
 
-void fillCircle(Canvas *canvas, int16_t x0, int16_t y0, int16_t r,
+void drawCircle(int16_t x, int16_t y, int16_t r, Color color)
+{
+    DrawCircle(canvas, x,y, r, color);
+}
+
+void fillCircle(int16_t x0, int16_t y0, int16_t r,
 			      Color color) {
-  drawFastVLine(canvas, x0, y0-r, 2*r+1, color);
-  fillCircleHelper(canvas, x0, y0, r, 3, 0, color);
+  drawFastVLine(x0, y0-r, 2*r+1, color);
+  fillCircleHelper(x0, y0, r, 3, 0, color);
 }
 
 // Used to do circles and roundrects
-void fillCircleHelper(Canvas *canvas, int16_t x0, int16_t y0, int16_t r,
-    uint8_t cornername, int16_t delta, Color color) {
+void fillCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t cornername, int16_t delta, Color color) {
 
   int16_t f     = 1 - r;
   int16_t ddF_x = 1;
@@ -106,46 +110,48 @@ void fillCircleHelper(Canvas *canvas, int16_t x0, int16_t y0, int16_t r,
     f     += ddF_x;
 
     if (cornername & 0x1) {
-      drawFastVLine(canvas, x0+x, y0-y, 2*y+1+delta, color);
-      drawFastVLine(canvas, x0+y, y0-x, 2*x+1+delta, color);
+      drawFastVLine(x0+x, y0-y, 2*y+1+delta, color);
+      drawFastVLine(x0+y, y0-x, 2*x+1+delta, color);
     }
     if (cornername & 0x2) {
-      drawFastVLine(canvas, x0-x, y0-y, 2*y+1+delta, color);
-      drawFastVLine(canvas, x0-y, y0-x, 2*x+1+delta, color);
+      drawFastVLine(x0-x, y0-y, 2*y+1+delta, color);
+      drawFastVLine(x0-y, y0-x, 2*x+1+delta, color);
     }
   } //endwhile
 }
 
-void  scrollBigMessage(Canvas *canvas, char *m){
+void  scrollBigMessage(char *m){
+printf("In Scroll Big\n");
 
-	setTextSize(canvas, 1);
+	setTextSize(1);
 	int l = (strlen(m)*-6) - 32;
 	for(int i = 32; i > l; i--){
-		cls(canvas);
-		setCursor(canvas, i, 1);
-		setTextColor(canvas, Color(1,1,1));
-// TODO		matrix.print(m);
-//TODO		matrix.swapBuffers(false);
-		sleep(50);
+		cls();
+//		setCursor(i, 1);
+		setTextColor(Color(255,255,0));
+//TODO		matrix->print(m);
+//            rgb_matrix::DrawText(canvas, mFont, 1,1 + font.baseline(), Color(255,255,0), text)
+		drawString(i,1, m, 51, Color(255,0,0));
+		swapBuffers(false);
+
+//                usleep(1 * 200);
         }
 }
 
 
-void scrollMessage(Canvas *canvas, char* top, char* bottom ,uint8_t top_font_size,
-		   uint8_t bottom_font_size, uint16_t top_color, uint16_t bottom_color){
+void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,
+		   uint8_t bottom_font_size, Color top_color, Color bottom_color){
 
 	int l = ((strlen(top)>strlen(bottom)?strlen(top):strlen(bottom))*-5) - 32;
 
 	for(int i=32; i > l; i--){
 		if (mode_changed == 1 || mode_quick)
 			return;
-		cls(canvas);
-		drawString(canvas, i,1,top,top_font_size, top_color);
-		drawString(canvas, i,1,top,top_font_size, top_color);
-		drawString(canvas, i,9,bottom, bottom_font_size, bottom_color);
-		drawString(canvas, i,9,bottom, bottom_font_size, bottom_color);
-//TODO		matrix.swapBuffers(false);
-		sleep(50);
+		cls();
+		drawString(i,1,top,top_font_size, top_color);
+		drawString(i,9,bottom, bottom_font_size, bottom_color);
+		swapBuffers(false);
+//                usleep(1 * 200);
 	}
 
 }
@@ -155,11 +161,11 @@ void scrollMessage(Canvas *canvas, char* top, char* bottom ,uint8_t top_font_siz
 * flashing_cursor
 * print a flashing_cursor at xpos, ypos and flash it repeats times
 */
-void flashing_cursor(Canvas *canvas, unsigned short xpos, unsigned short ypos, unsigned short cursor_width, unsigned short cursor_height, unsigned short repeats)
+void flashing_cursor(unsigned short xpos, unsigned short ypos, unsigned short cursor_width, unsigned short cursor_height, unsigned short repeats)
 {
 	for (unsigned short r = 0; r <= repeats; r++) {
-		fillRect(canvas, xpos,ypos,cursor_width, cursor_height, Color(0,3,0));
-//TODO		matrix.swapBuffers(true);
+		fillRect(xpos,ypos,cursor_width, cursor_height, Color(0,3,0));
+		swapBuffers(true);
 
 		if (repeats > 0) {
 			sleep(400);
@@ -168,8 +174,8 @@ void flashing_cursor(Canvas *canvas, unsigned short xpos, unsigned short ypos, u
 			sleep(70);
 		}
 
-		fillRect(canvas, xpos,ypos,cursor_width, cursor_height, Color(0,0,0));
-//TODO		matrix.swapBuffers(true);
+		fillRect(xpos,ypos,cursor_width, cursor_height, Color(0,0,0));
+		swapBuffers(true);
 
 		//if cursor set to repeat, wait a while
 		if (repeats > 0) {
@@ -178,26 +184,40 @@ void flashing_cursor(Canvas *canvas, unsigned short xpos, unsigned short ypos, u
 	}
 }
 
-void setCursor(Canvas *canvas, int x, int y)
+void setCursor(int x, int y)
 {
 }
 
-void setTextColor(Canvas *canvas, Color c)
+void setTextColor(Color c)
 {
 }
 
 
-void drawString(Canvas *canvas, int x, int y, char* c,uint8_t font_size, Color color)
+void drawString(int x, int y, char* c,uint8_t font_size, Color color)
 {
 // TODO make font reflect size
 
         // x & y are positions, c-> pointer to string to disp, update_s: false(write to mem), true: write to disp
         //font_size : 51(ascii value for 3), 53(5) and 56(8)
-//TODO	DrawText(canvas, mFont, 2,2, color, NULL, c);
+ /*
+  * Load font. This needs to be a filename with a bdf bitmap font.
+  */
+        rgb_matrix::Font font;
+        if (!font.LoadFont("./fonts/5x7.bdf")) {
+              printf("Couldn't load font\n");
+	      return;
+        }
+ fprintf(stderr, "Font height is '%d'\n", font.height());
+ fprintf(stderr, "X is '%d'\n", x);
+ fprintf(stderr, "Y is '%d'\n", y+font.baseline());
+
+//	DrawText(canvas, mFont, 2,2, color, NULL, c);
+//	rgb_matrix::DrawText(canvas, font, x,y + font.baseline(), color, NULL, c);
+	rgb_matrix::DrawText(canvas, font, x,y + font.baseline(), color, c);
 }
 
 
-void drawChar(Canvas *canvas, int x, int y, char c, uint8_t font_size, Color color)  // Display the data depending on the font size mentioned in the font_size variable
+void drawChar(int x, int y, char c, uint8_t font_size, Color color)  // Display the data depending on the font size mentioned in the font_size variable
 {
    int i;
    i = mFont.DrawGlyph(canvas, x, y, color, c);
@@ -206,17 +226,18 @@ void drawChar(Canvas *canvas, int x, int y, char c, uint8_t font_size, Color col
 
 } // End of namespace
 
-
+/*
 void drawString(int x, int y, char* c,uint8_t font_size, uint16_t color)
 {
 	// x & y are positions, c-> pointer to string to disp, update_s: false(write to mem), true: write to disp
 	//font_size : 51(ascii value for 3), 53(5) and 56(8)
 	for(uint16_t i=0; i< strlen(c); i++)
 	{
-//		drawChar(canvas, x, y, c[i],font_size, color);
+//TODO		drawChar(canvas, x, y, c[i],font_size, color);
 		x+=calc_font_displacement(font_size); // Width of each glyph
 	}
 }
+*/
 
 int calc_font_displacement(uint8_t font_size)
 {
@@ -264,8 +285,8 @@ void drawChar(int x, int y, char c, uint8_t font_size, uint16_t color) {
 	case 51:  // font size 3x5  ascii value of 3: 51
 
 		if(c==':'){
-//			matrix.drawPixel(x+1,y+1,color);
-//			matrix.drawPixel(x+1,y+3,color);
+			matrix.drawPixel(x+1,y+1,color);
+			matrix.drawPixel(x+1,y+3,color);
 			drawPixel(canvas,x+1,y+1,color);
 			drawPixel(canvas,x+1,y+3,color);
 		}
