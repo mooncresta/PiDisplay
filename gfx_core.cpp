@@ -202,6 +202,7 @@ void drawString(int x, int y, char* c,uint8_t font_size, Color color)
  /*
   * Load font. This needs to be a filename with a bdf bitmap font.
   */
+//TODO Don't load font every time !!!	
         rgb_matrix::Font font;
         if (!font.LoadFont("./fonts/5x7.bdf")) {
               printf("Couldn't load font\n");
