@@ -150,6 +150,18 @@ void swapBuffers(boolean copy);
 void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,uint8_t bottom_font_size, Color top_color, Color bottom_color);
 };
 
+
+struct t_FontLib {
+        char name[20];
+        int width;
+        int height;
+        Font *ptr;
+};
+
+#define F_SMALL 0
+#define F_MEDIUM 1
+#define F_LARGE 2
+
 struct TimerObject{
   int hour, minute;
 };
@@ -185,6 +197,7 @@ public:
 extern char* itoa(int a, char* buffer, unsigned char radix);
 extern TimeClass Time;	//eg. usage: Time.day();
 extern Font mFont;
+extern t_FontLib FontLib[];
 extern int mode_changed;
 extern uint16_t showClock;
 extern unsigned long modeSwitch;

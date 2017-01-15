@@ -131,10 +131,10 @@ printf("In Scroll Big\n");
 		setTextColor(Color(255,255,0));
 //TODO		matrix->print(m);
 //            rgb_matrix::DrawText(canvas, mFont, 1,1 + font.baseline(), Color(255,255,0), text)
-		drawString(i,1, m, 51, Color(255,0,0));
+		drawString(i,1, m, F_LARGE, Color(255,0,0));
 		swapBuffers(false);
 
-//                usleep(1 * 200);
+                usleep(3 * 10000);
         }
 }
 
@@ -151,7 +151,7 @@ void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,
 		drawString(i,1,top,top_font_size, top_color);
 		drawString(i,9,bottom, bottom_font_size, bottom_color);
 		swapBuffers(false);
-//                usleep(1 * 200);
+                usleep(3 * 10000);
 	}
 
 }
@@ -197,20 +197,21 @@ void drawString(int x, int y, char* c,uint8_t font_size, Color color)
 {
 // TODO make font reflect size
 
+    int font_index = font_size; //TODO - better way to use size to select
+    font_index = 0;
+ 
         // x & y are positions, c-> pointer to string to disp, update_s: false(write to mem), true: write to disp
         //font_size : 51(ascii value for 3), 53(5) and 56(8)
  /*
   * Load font. This needs to be a filename with a bdf bitmap font.
   */
-  int font_index = 0; //TODO - use size to select
+       y = y+ FontLib[font_index].ptr->baseline();
 	
- fprintf(stderr, "Font height is '%d'\n", FontLib[font_index].ptr->height());
+// fprintf(stderr, "Font height is '%d'\n", FontLib[font_index].ptr->height());
  fprintf(stderr, "X is '%d'\n", x);
- fprintf(stderr, "Y is '%d'\n", y+FontLib[font_index].ptr->.baseline());
+ fprintf(stderr, "Y is '%d'\n", y);
 
-//	DrawText(canvas, mFont, 2,2, color, NULL, c);
-//	rgb_matrix::DrawText(canvas, font, x,y + font.baseline(), color, NULL, c);
-	rgb_matrix::DrawText(canvas, FontLib[font_index].ptr, x,y + FontLib[font_index].ptr->baseline(), color, c);
+	rgb_matrix::DrawText(canvas, *FontLib[font_index].ptr, x,y, color, NULL, c);
 }
 
 

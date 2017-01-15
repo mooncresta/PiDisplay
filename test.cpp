@@ -24,6 +24,17 @@ RGBMatrix *matrix;
 FrameCanvas *canvas;
 Font mFont;
 
+// Font directory - assumes it's as per standard library name
+#define FONT_DIR "./rpi-rgb-led-matrix/fonts/"
+
+#define NUM_FONTS 3   // To match below
+t_FontLib FontLib[] = {
+        {"4x6.bdf", 4, 6, NULL},  // SMALL
+        {"5x7.bdf", 5, 7, NULL},  // MEDIUM
+        {"9x15.bdf", 0, 0, NULL}  // LARGE
+};
+
+
 TimeClass Time;
 
 int stringPos;
@@ -76,8 +87,11 @@ void p0()
 
    printf("Cloud\n");
    cls();
+   printf("drawbitmap\n");
    drawBitmap(0,0,cloud_outline, 16, 16, Color(100,100,100));
+   printf("swap\n");
    swapBuffers(false);
+   printf("sleep\n");
    sleep(2);
 
    printf("Rectangle\n");
@@ -133,7 +147,7 @@ printf("Before DrawText\n");
 
    printf("Scroll Message\n");
    cls();
-   scrollMessage("Top Line Message", "Bottom Line Special", 53, 53, Color(255,0,0), Color(0,255,0));
+   scrollMessage("Top Line Message", "Bottom Line Special", F_SMALL, F_MEDIUM, Color(255,0,0), Color(0,255,0));
    swapBuffers(false);
    sleep(5);
 }
@@ -173,28 +187,61 @@ void testcalls() {
 int main(int argc, char *argv[]) {
 
   RGBMatrix::Options defaults;
+  rgb_matrix::RuntimeOptions runtime;
+
   defaults.hardware_mapping = "adafruit-hat";  // or e.g. "adafruit-hat"
   defaults.rows = 32;
-  defaults.chain_length = 1;
+  defaults.chain_length = 2;
   defaults.parallel = 1;
   defaults.brightness = 100;
   defaults.show_refresh_rate = true;
+  defaults.pwm_bits = 11;
+  runtime.gpio_slowdown=1;
 
-   matrix = rgb_matrix::CreateMatrixFromFlags(&argc, &argv, &defaults);
-   if (matrix == NULL)
+  matrix = rgb_matrix::CreateMatrixFromFlags(&argc, &argv,
+                                                        &defaults,
+                                                        &runtime);
+  if (matrix == NULL) {
+    PrintMatrixFlags(stderr, defaults, runtime);
     return 1;
+  }
+//  matrix = CreateMatrixFromOptions(defaults, runtime);
+//  if (matrix == NULL)
+//    return 1;
+
+// matrix = rgb_matrix::CreateMatrixFromFlags(&argc, &argv, &defaults);
+//   if (matrix == NULL)
+//    return 1;
+  // Looks like we're ready to start
+//  RGBMatrix *matrix = CreateMatrixFromOptions(defaults, runtime);
+//  if (matrix == NULL) {
+//    return 1;
+//  }
 
   // Drawing Canvas
   canvas = matrix->CreateFrameCanvas();
   if (canvas == NULL)
     return 1;
 
+// canvas->SetPWMBits(2);
 
   // It is always good to set up a signal handler to cleanly exit when we
   // receive a CTRL-C for instance. The DrawOnCanvas() routine is looking
   // for that.
   signal(SIGTERM, InterruptHandler);
   signal(SIGINT, InterruptHandler);
+
+        // Setup Fonts
+        char fontname[40];
+        for(int i=0; i<NUM_FONTS; i++) {
+            FontLib[i].ptr = new Font;
+	    fprintf(stdout, "Loading Font %s\n", FontLib[i].name);
+            sprintf(fontname, "%s%s", FONT_DIR, FontLib[i].name);
+            if (!FontLib[i].ptr->LoadFont(fontname)) {
+              fprintf(stderr, "Couldn't load font '%s'\n", fontname);
+              return 1;
+            }
+        }
 
   testcalls();
 

@@ -38,20 +38,15 @@ const colourMap cMap[] = {
 /********* FONT STUFF ********/
 
 // Font directory - assumes it's as per standard library name
-#define FONT_DIR "./rpi-rgb-led-matrix/fonts"  
+#define FONT_DIR "./rpi-rgb-led-matrix/fonts/"  
 
-struct t_FontLib {
-	char[20] name;
-	int width;
-	int height;
-	Font *ptr;
+#define NUM_FONTS 3   // To match below
+t_FontLib FontLib[] = {
+	{"4x6.bdf", 4, 6, NULL},  // SMALL	
+	{"5x7.bdf", 5, 7, NULL},  // MEDIUM
+	{"9x15.bdf", 0, 0, NULL}  // LARGE
 };
 
-#define NUM_FONTS 2   // To match below
-const t_FontLib FontLib[] = {
-	{"5x7.bdf", 5, 7, NULL},
-	{"helvR12.bdf", 0, 0, NULL}
-};
 // Select North America or Central Europe...
 
 //#define DST_NORTH_AMERICA
@@ -216,10 +211,10 @@ void setup() {
 	setTextColor(Color(210, 210, 210));
    	// Setup Fonts
 	char fontname[30];
-	for(int i=0; i<=NUM_FONTS; i++) {
+	for(int i=0; i<NUM_FONTS; i++) {
 	    FontLib[i].ptr = new Font;
 	    sprintf(fontname, "%s%s", FONT_DIR, FontLib[i].name); 
-	    if (!font->LoadFont(fontname)) {
+	    if (!FontLib[i].ptr->LoadFont(fontname)) {
               printf("Couldn't load font\n");
 	      return;
             }
