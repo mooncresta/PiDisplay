@@ -4,6 +4,7 @@
 *********/
 
 #include "led-matrix.h" // Hardware-specific library
+#include "threaded-canvas-manipulator.h"
 #include "graphics.h"
 #include "fix_fft.h"
 //#include "font3x5.h"
@@ -31,7 +32,9 @@ using namespace std;
 #define DEBUGpln(message)
 
 /********* Defines to enable Panels *****/
-//#define PANEL_PACMAN
+#define PANEL_PACMAN
+#define PANEL_PONG
+#define PANEL_MESSAGE
 //#define PANEL_MARQUEE
 //#define PANEL_WORDCLOCK
 //#define PANEL_WEATHER
@@ -85,7 +88,7 @@ int r,g,b;
 #define BAT1_X 2                         // Pong left bat x pos (this is where the ball collision occurs, the bat is drawn 1 behind these coords)
 #define BAT2_X 28
 
-#define X_MAX 31                         // Matrix X max LED coordinate (for 2 displays placed next to each other)
+#define X_MAX 63                         // Matrix X max LED coordinate (for 2 displays placed next to each other)
 #define Y_MAX 15
 
 /****************************/
@@ -107,7 +110,7 @@ void drawWeatherIcon(uint8_t x, uint8_t y, int id);
 void pacClear();
 void pacMan();
 void drawPac(int x, int y, int z);
-void drawGhost( int x, int y, int color);
+void drawGhost( int x, int y, Color color);
 void drawScaredGhost( int x, int y);
 void pong();
 unsigned short pong_get_ball_endpoint(float tempballpos_x, float  tempballpos_y, float  tempballvel_x, float tempballvel_y);
@@ -194,6 +197,22 @@ public:
 	static void    setTime(time_t t);			// set the given time as unix/rtc time
 };
 
+class MessageScroller : public ThreadedCanvasManipulator {
+public:
+  MessageScroller(RGBMatrix*, int, int);
+  virtual ~MessageScroller();
+
+  void Run() ;
+private:
+  const int scroll_jumps_;
+  const int scroll_ms_;
+
+  int32_t horizontal_position_;
+
+  RGBMatrix* matrix_;
+  FrameCanvas* offscreen_;
+};
+
 extern char* itoa(int a, char* buffer, unsigned char radix);
 extern TimeClass Time;	//eg. usage: Time.day();
 extern Font mFont;
@@ -206,5 +225,9 @@ extern bool mode_quick;
 extern int clock_mode;
 extern RGBMatrix *matrix;
 extern FrameCanvas *canvas; // Active Canvas
+extern boolean wasWeatherShownLast;
+extern unsigned long lastWeatherTime;
+extern boolean weatherGood;
+extern int badWeatherCall;
 
 #endif

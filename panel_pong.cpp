@@ -4,8 +4,8 @@
 
 void pong(){
 	DEBUGpln("in Pong");
-	setTextSize(canvas, 1);
-	setTextColor(canvas, Color(2, 2, 2));
+	setTextSize(1);
+	setTextColor(Color(2, 2, 2));
 
 	float ballpos_x, ballpos_y;
 	float ballvel_x, ballvel_y;
@@ -30,8 +30,8 @@ void pong(){
 		if(Time.second()%2==0)adjust=1;
 		for (unsigned short i = 0; i <16; i++) {
 			if ( i % 2 == 0 ) { //plot point if an even number
-//				matrix.drawPixel(16,i+adjust,matrix.Color333(0,4,0));
-				drawPixel(canvas, 16,i+adjust,Color(0,4,0));
+//				drawPixel(16,i+adjust,matrix.Color333(0,4,0));
+				drawPixel(16,i+adjust,Color(0,4,0));
 			}
 		}
 
@@ -197,7 +197,7 @@ void pong(){
 
 		//draw bat 1
 		if (bat1_update){
-			fillRect(canvas, BAT1_X-1,bat1_y,2,6,Color(0,0,4));
+			fillRect(BAT1_X-1,bat1_y,2,6,Color(0,0,4));
 		}
 
 		//move bat 2 towards target (dont go any further or bat will move off screen)
@@ -215,7 +215,7 @@ void pong(){
 
 		//draw bat2
 		if (bat2_update){
-			fillRect(canvas, BAT2_X+1,bat2_y,2,6,Color(0,0,4));
+			fillRect(BAT2_X+1,bat2_y,2,6,Color(0,0,4));
 		}
 
 		//update the ball position using the velocity
@@ -331,7 +331,7 @@ void pong(){
 		unsigned short plot_y = (int)(ballpos_y + 0.5f);
 
 //		matrix.drawPixel(plot_x,plot_y,matrix.Color333(4, 0, 0));
-		drawPixel(canvas, plot_x,plot_y,Color(4, 0, 0));
+		drawPixel(plot_x,plot_y,Color(4, 0, 0));
 
 		//check if a bat missed the ball. if it did, reset the game.
 		if ((int)ballpos_x == 0 ||(int) ballpos_x == 32){

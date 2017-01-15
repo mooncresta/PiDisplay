@@ -83,10 +83,17 @@ void pacClear(){
 	//refresh weather if we havent had it for 30 mins
 	//or the last time we had it, it was bad,
 	//or weve never had it before.
-	if((millis()>lastWeatherTime+1800000) || lastWeatherTime==0 || !weatherGood) getWeather();
+
+	if((millis()>lastWeatherTime+1800000) || lastWeatherTime==0 || !weatherGood) {
+#ifdef PANEL_WEATHER
+		getWeather();
+#endif
+	}
 
 	if(!wasWeatherShownLast && weatherGood){
+#ifdef PANEL_WEATHER
 		showWeather();
+#endif
 		wasWeatherShownLast = true;
 	}
 	else{
@@ -98,7 +105,6 @@ void pacClear(){
 
 
 void pacMan(){
-#if defined (usePACMAN)
 	DEBUG("in pacMan\n");
 	if(powerPillEaten>0){
 		for(int i =32+(powerPillEaten*17); i>-17; i--){
@@ -111,14 +117,15 @@ void pacMan(){
 			if(powerPillEaten>2) drawScaredGhost(i-51,0);
 			if(powerPillEaten>3) drawScaredGhost(i-68,0);
 
-			matrix.swapBuffers(false);
-			while(millis()-nowish<50)
+			swapBuffers(false);
+       usleep(3 * 10000);
+
+//			while(millis()-nowish<50)
 //				Spark.process();	//Give the background process some lovin'
 		}
 		powerPillEaten = 0;
 	}
 	else{
-
 		int hasEaten = 0;
 
 		int powerPill = random(0,5);
@@ -135,10 +142,10 @@ void pacMan(){
 
 				if( j*5> i){
 					if(powerPill==0 && j==4){
-						fillCircle(canvas, j*5,8,2,Color7,3,0));
+						fillCircle(j*5,8,2,Color(7,3,0));
 					}
 					else{
-						fillRect(canvas, j*5,8,2,2,Color(7,3,0));
+						fillRect(j*5,8,2,2,Color(7,3,0));
 					}
 				}
 			}
@@ -157,26 +164,24 @@ void pacMan(){
 				if(numGhosts>2) drawScaredGhost(i-51-(i-19)*2,0);
 				if(numGhosts>3) drawScaredGhost(i-68-(i-19)*2,0);
 			}
-			matrix.swapBuffers(false);
-			while(millis()-nowish<50)
-//				Spark.process();	//Give the background process some lovin'
-		}
-	}
-#endif //usePACMAN
-}
+			swapBuffers(false);
+       usleep(3 * 10000);
+//			while(millis()-nowish<50)
+		} //endfor
+	} //endif
+} //end fn
 
-#if defined (usePACMAN)
 void drawPac(int x, int y, int z){
 	Color c = Color(3,3,0);
 	if(x>-16 && x<32){
 		if(abs(x)%4==0){
-			drawBitmap(canvas, x,y,(z>0?pac:pac_left),16,16,c);
+			drawBitmap(x,y,(z>0?pac:pac_left),16,16,c);
 		}
 		else if(abs(x)%4==1 || abs(x)%4==3){
-			drawBitmap(canvas, x,y,(z>0?pac2:pac_left2),16,16,c);
+			drawBitmap(x,y,(z>0?pac2:pac_left2),16,16,c);
 		}
 		else{
-			drawBitmap(canvas, x,y,(z>0?pac3:pac_left3),16,16,c);
+			drawBitmap(x,y,(z>0?pac3:pac_left3),16,16,c);
 		}
 	}
 }
@@ -184,25 +189,26 @@ void drawPac(int x, int y, int z){
 void drawGhost( int x, int y, Color color){
 	if(x>-16 && x<32){
 		if(abs(x)%8>3){
-			drawBitmap(canvas, x,y,blinky,16,16,color);
+			drawBitmap(x,y,blinky,16,16,color);
 		}
 		else{
-			drawBitmap(canvas, x,y,blinky2,16,16,color);
+			drawBitmap(x,y,blinky2,16,16,color);
 		}
-		drawBitmap(canvas, x,y,eyes1,16,16,Color(3,3,3));
-		drawBitmap(canvas, x,y,eyes2,16,16,Color(0,0,7));
+		drawBitmap(x,y,eyes1,16,16,Color(3,3,3));
+		drawBitmap(x,y,eyes2,16,16,Color(0,0,7));
 	}
 }
 
 void drawScaredGhost( int x, int y){
 	if(x>-16 && x<32){
 		if(abs(x)%8>3){
-			drawBitmap(canvas, x,y,blinky,16,16,matrix.Color333(0,0,7));
+			drawBitmap(x,y,blinky,16,16,Color(0,0,7));
 		}
 		else{
-			drawBitmap(canvas, x,y,blinky2,16,16,Color(0,0,7));
+			drawBitmap(x,y,blinky2,16,16,Color(0,0,7));
 		}
-		drawBitmap(canvas, x,y,scared,16,16,Color(7,3,2));
+		drawBitmap(x,y,scared,16,16,Color(7,3,2));
 	}
 }
+
 #endif  //usePACMAN

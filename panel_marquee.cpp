@@ -1,3 +1,8 @@
+#include "PiDisplay.h"
+
+
+#ifdef PANEL_MARQUEE
+
 class ImageScroller : public ThreadedCanvasManipulator {
 public:
   // Scroll image with "scroll_jumps" pixels every "scroll_ms" milliseconds.
@@ -145,3 +150,5 @@ private:
   RGBMatrix* matrix_;
   FrameCanvas* offscreen_;
 };
+
+#endif

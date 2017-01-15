@@ -93,6 +93,10 @@ int clock_mode = 0;				// Default clock mode (1 = pong)
 uint16_t showClock = 300;		// Default time to show a clock face
 unsigned long modeSwitch;
 unsigned long updateCTime;		// 24hr timer for resyncing cloud time
+boolean wasWeatherShownLast= true;
+unsigned long lastWeatherTime =0;
+boolean weatherGood=false;
+int badWeatherCall;
 
 
 /************  FFT definitions **********/
@@ -161,7 +165,7 @@ int main(int argc, char *argv[]) {
   RGBMatrix::Options defaults;
   defaults.hardware_mapping = "adafruit-hat";  // or e.g. "adafruit-hat"
   defaults.rows = 32;
-  defaults.chain_length = 1;
+  defaults.chain_length = 2;
   defaults.parallel = 1;
   defaults.show_refresh_rate = false;
   matrix = rgb_matrix::CreateMatrixFromFlags(&argc, &argv, &defaults);
@@ -209,6 +213,7 @@ void setup() {
 	setTextWrap(false); // Allow text to run off right edge
 	setTextSize(1);
 	setTextColor(Color(210, 210, 210));
+
    	// Setup Fonts
 	char fontname[30];
 	for(int i=0; i<NUM_FONTS; i++) {
@@ -248,6 +253,10 @@ void setup() {
 	clock_mode = random(0,MAX_CLOCK_MODE-1);
 	modeSwitch = millis();
 	updateCTime = millis();		// Reset 24hr cloud time refresh counter
+
+#ifdef PANEL_MESSAGE
+	MessageScroller *msgbar = new MessageScroller(matrix, 10, 10);
+#endif
 	DEBUG("Exiting Setup\n");
 }
 
@@ -288,7 +297,7 @@ void loop()
 #endif
         break;
       case 2:
-#ifdef PANEL_PONG
+#ifdef PANEL_WORDCLOCK
         word_clock();
 #endif
         break;
@@ -308,7 +317,7 @@ void loop()
 #endif
         break;
       case 6:
-#ifdef PANEL_PLASMA
+#ifdef PANEL_MARQUEE
         marquee();
 #endif
         break;
@@ -339,7 +348,7 @@ void loop()
     {
         cls();
 //TODO add back
-    swapBuffers(false);
+        swapBuffers(false);
         mode_changed = 0;
     }
     nitelite();
