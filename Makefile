@@ -1,7 +1,7 @@
 CXXFLAGS=-Wall -O3 -g -fno-strict-aliasing $(RGB_INCDIR)
 BINARIES=PiDisplay
 OBJECTS=PiDisplay.o bridge.o gfx_core.o utils.o time.o panel_nitelite.o panel_normal.o panel_pacman.o panel_pong.o\
-	panel_message.o
+	panel_message.o panel_weather.o
 
 RGB_LIB_DISTRIBUTION=rpi-rgb-led-matrix
 RGB_LIBDIR=$(RGB_LIB_DISTRIBUTION)/lib
@@ -21,8 +21,8 @@ LDFLAGS+=-L$(RGB_LIBDIR) -l$(RGB_LIBRARY_NAME) -lrt -lm -lpthread
 
 all : $(BINARIES)
 
-test : test.o bridge.o gfx_core.o utils.o time.o $(RGB_LIBRARY)
-	$(CXX) $(RGB_INCDIR) $(CXXFLAGS) test.o bridge.o gfx_core.o utils.o time.o -o $@ $(LDFLAGS)
+test : test.o bridge.o gfx_core.o utils.o time.o panel_message.o $(RGB_LIBRARY)
+	$(CXX) $(RGB_INCDIR) $(CXXFLAGS) test.o bridge.o gfx_core.o utils.o time.o panel_message.o -o $@ $(LDFLAGS)
 
 PiDisplay : $(OBJECTS) $(RGB_LIBRARY)
 	$(CXX) $(RGB_INCDIR) $(CXXFLAGS) $(OBJECTS) -o $@ $(LDFLAGS)

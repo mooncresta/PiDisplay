@@ -144,6 +144,7 @@ void loop();
 RGBMatrix *matrix;  // Active matrix
 FrameCanvas *canvas; // Active Canvas
 Font mFont;
+char g_scrolling_message[512];
 
 volatile bool interrupt_received = false;
 
@@ -255,7 +256,11 @@ void setup() {
 	updateCTime = millis();		// Reset 24hr cloud time refresh counter
 
 #ifdef PANEL_MESSAGE
-	MessageScroller *msgbar = new MessageScroller(matrix, 10, 10);
+	DEBUG("Message Scroller\n");
+	strcpy(g_scrolling_message, "Test scrolling messaage");
+	MessageScroller *msgbar = new MessageScroller(matrix, 10, 10, Color(255,255,255));
+	DEBUG("Starting Message Scroller\n");
+	msgbar->Start();
 #endif
 	DEBUG("Exiting Setup\n");
 }

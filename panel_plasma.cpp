@@ -67,7 +67,7 @@ void plasma() {
 			mode_quick = false;
 			display_date();
 
-#ifdef FACE_WEATHER
+#ifdef PANEL_WEATHER
 			quickWeather();
 #endif
 			spectrumDisplay();

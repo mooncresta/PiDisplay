@@ -16,8 +16,8 @@ void drawDayOfWeek();
 
 
 /***** Weather webhook definitions *****/
-#define HOOK_RESP		"hook-response/rgbpc_weather_hook"
-#define HOOK_PUB		"rgbpc_weather_hook"
+//#define HOOK_RESP		"hook-response/rgbpc_weather_hook"
+//#define HOOK_PUB		"rgbpc_weather_hook"
 /***************************************/
 
 
@@ -47,6 +47,11 @@ static char daynames[7][4] = {
 uint8_t weather_dow = 0;
 
 //*****************Weather Stuff*********************
+void clearWeather() {
+// Clear weather panel
+   fillRect(K_W_X, K_WY-1, K_W_WIDTH, K_W_HEIGHT, Color(0,0,0));
+
+};
 
 void quickWeather(){
 	getWeather();
@@ -55,10 +60,10 @@ void quickWeather(){
 		//*** If city has changed, then since weatherGood then store city in EEPROM ***
 	}
 	else{
-		cls();
+		clearWeather();
 		drawPixel(canvas,0,0, Color(1,0,0));
 		drawPixel(canvas, 0,0,Color(1,0,0));
-//		matrix.swapBuffers(true);
+		swapBuffers(true);
 		DEBUG("Sleep\n");
 		sleep(10);
 	}
@@ -68,7 +73,6 @@ void quickWeather(){
 void getWeather(){
 	DEBUGpln("in getWeather");
 	char vars[90];
-/*
 	strcpy(vars, "{");
 	strcat(vars, city);
 	strcat(vars, ",");
@@ -79,7 +83,6 @@ void getWeather(){
 
 	weatherGood = false;
 	// publish the event with city data that will trigger the webhook
-	//Spark.publish(HOOK_PUB, city, 60, PRIVATE);
 //	Spark.publish(HOOK_PUB, vars, 60, PRIVATE);
 
 	unsigned long wait = millis();
@@ -90,11 +93,10 @@ void getWeather(){
 		DEBUGn("Weather update failed\n");
 		badWeatherCall++;
 		if (badWeatherCall > 4)		//If 3 webhook call fail in a row, do a system reset
-			System.reset();
+			return;
 	}
 	else
 		badWeatherCall = 0;
-*/
 }
 
 void processWeather(const char *name, const char *data){
@@ -176,11 +178,11 @@ void showWeather(){
 
 		//Display the day on the top line.
 		if(i==0){
-			drawString(2,2,(char*)"Now",51,Color(1,1,1));
+			drawString(K_W_X+2,K_W_Y+2,(char*)"Now",51,Color(1,1,1));
 //			drawString(2,2,(char*)"Now",51,matrix.Color444(1,1,1));
 		}
 		else{
-//			drawString(2,2,daynames[(dow+i-1) % 7],51,matrix.Color444(0,1,0));
+//			drawString(K_W_X+2,K_W_Y+2,daynames[(dow+i-1) % 7],51,matrix.Color444(0,1,0));
 			drawString(2,2,daynames[(dow+i-1) % 7],51,Color(0,1,0));
 			DEBUGpln(daynames[(dow+i-1)%7]);
 		}
@@ -189,19 +191,15 @@ void showWeather(){
 		bool positive = !(w_temp[i][0]=='-');
 		for(int t=0; t<7; t++){
 			if(w_temp[i][t]=='-'){
-//				matrix.drawLine(3,10,4,10,tempColor);
-				DrawLine(canvas, 3,10,4,10,tempColor);
+				DrawLine(canvas, K_W_X+3,K_W_Y+10,K_W_X+4,K_W_Y+10,tempColor);
 			}
 			else if(!(w_temp[i][t]==0)){
 				vectorNumber(w_temp[i][t]-'0',t*4+2+(positive*2),8,tempColor,1,1);
 			}
 		}
 
-// TODO
-//		matrix.swapBuffers(true);
-		drawWeatherIcon(16,0,atoi(w_id[i]));
-
-//		Spark.process();	//Give the background process some lovin'
+		drawWeatherIcon(K_W_X+16,K_W_Y+0,atoi(w_id[i]));
+		swapBuffers(true);
 
 	}
 }
@@ -326,5 +324,6 @@ void drawWeatherIcon(uint8_t x, uint8_t y, int id){
 		sleep(( 50 -( intensity * 10 )) < 0 ? 0: 50-intensity*10);
 	}
 }
+
 //*****************End Weather Stuff*********************
 #endif

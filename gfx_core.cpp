@@ -127,10 +127,7 @@ printf("In Scroll Big\n");
 	int l = (strlen(m)*-6) - 32;
 	for(int i = 32; i > l; i--){
 		cls();
-//		setCursor(i, 1);
 		setTextColor(Color(255,255,0));
-//TODO		matrix->print(m);
-//            rgb_matrix::DrawText(canvas, mFont, 1,1 + font.baseline(), Color(255,255,0), text)
 		drawString(i,1, m, F_LARGE, Color(255,0,0));
 		swapBuffers(false);
 
@@ -163,6 +160,8 @@ void scrollMessage(char* top, char* bottom ,uint8_t top_font_size,
 */
 void flashing_cursor(unsigned short xpos, unsigned short ypos, unsigned short cursor_width, unsigned short cursor_height, unsigned short repeats)
 {
+
+// DOES NOT WORK !!!
 	for (unsigned short r = 0; r <= repeats; r++) {
 		fillRect(xpos,ypos,cursor_width, cursor_height, Color(0,3,0));
 		swapBuffers(true);
@@ -186,10 +185,12 @@ void flashing_cursor(unsigned short xpos, unsigned short ypos, unsigned short cu
 
 void setCursor(int x, int y)
 {
+// DOES NOT WORK !!!
 }
 
 void setTextColor(Color c)
 {
+// DOES NOT WORK !!!
 }
 
 
@@ -208,8 +209,8 @@ void drawString(int x, int y, char* c,uint8_t font_size, Color color)
        y = y+ FontLib[font_index].ptr->baseline();
 	
 // fprintf(stderr, "Font height is '%d'\n", FontLib[font_index].ptr->height());
- fprintf(stderr, "X is '%d'\n", x);
- fprintf(stderr, "Y is '%d'\n", y);
+// fprintf(stderr, "X is '%d'\n", x);
+// fprintf(stderr, "Y is '%d'\n", y);
 
 	rgb_matrix::DrawText(canvas, *FontLib[font_index].ptr, x,y, color, NULL, c);
 }

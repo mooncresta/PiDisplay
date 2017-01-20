@@ -16,13 +16,14 @@
 using namespace rgb_matrix;
 using namespace std;
 
-
+#define PANEL_MESSAGE
 /*************************************/
 // GLOBALS
 
 RGBMatrix *matrix;
 FrameCanvas *canvas;
 Font mFont;
+char g_scrolling_message[512];
 
 // Font directory - assumes it's as per standard library name
 #define FONT_DIR "./rpi-rgb-led-matrix/fonts/"
@@ -55,7 +56,6 @@ static void InterruptHandler(int signo) {
   DEBUG("EXITING .........\n");
 
   exit(0);
-
 }
 
 
@@ -150,6 +150,16 @@ printf("Before DrawText\n");
    scrollMessage("Top Line Message", "Bottom Line Special", F_SMALL, F_MEDIUM, Color(255,0,0), Color(0,255,0));
    swapBuffers(false);
    sleep(5);
+
+        DEBUG("Message Scroller\n");
+        strcpy(g_scrolling_message, "Test scrolling messaage");
+        MessageScroller *msgbar = new MessageScroller(matrix, 10, 10, Color(255,255,255));
+        DEBUG("Starting Message Scroller\n");
+        msgbar->Start();
+        DEBUG("Message Scroller Started\n");
+	sleep(5);
+        strcpy(g_scrolling_message, "Second New Message quite long");
+	sleep(5);
 }
 
 void p1()
@@ -180,7 +190,7 @@ void testcalls() {
   canvas->Clear();
   p0();
   sleep(10);
-  p1();
+//  p1();
   sleep(10);
 }
 

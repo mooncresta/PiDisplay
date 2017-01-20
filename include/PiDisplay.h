@@ -37,8 +37,23 @@ using namespace std;
 #define PANEL_MESSAGE
 //#define PANEL_MARQUEE
 //#define PANEL_WORDCLOCK
-//#define PANEL_WEATHER
+#define PANEL_WEATHER
 //#define PANEL_XXXXX
+
+#define K_WIDTH 64   // Number of Leds across
+#define K_HEIGHT 32  // Number of rows/height
+
+// Defines for Panel Sizes
+// Message Panel - bottom half of screen 
+#define K_MS_WIDTH K_WIDTH)
+#define K_MS_HEIGHT (K_HEIGHT/2) // default to half the height
+#define K_MS_X 0 // Start x of message panel
+#define K_MS_Y (K_WIDTH/2) // Start y of message panel
+// Weather Panel - top rh panel
+#define K_W_WIDTH (K_WIDTH/2)
+#define K_W_HEIGHT (K_HEIGHT/2) // default to half the height
+#define K_W_X 0 // Start x of message panel
+#define K_W_Y 16 // Start y of message panel
 
 /*********** End of Defines *************/
 
@@ -199,7 +214,7 @@ public:
 
 class MessageScroller : public ThreadedCanvasManipulator {
 public:
-  MessageScroller(RGBMatrix*, int, int);
+  MessageScroller(RGBMatrix*, int, int, Color);
   virtual ~MessageScroller();
 
   void Run() ;
@@ -213,7 +228,9 @@ private:
   FrameCanvas* offscreen_;
 };
 
+extern volatile bool interrupt_received;
 extern char* itoa(int a, char* buffer, unsigned char radix);
+extern char g_scrolling_message[512];
 extern TimeClass Time;	//eg. usage: Time.day();
 extern Font mFont;
 extern t_FontLib FontLib[];

@@ -41,7 +41,9 @@ void pong(){
 		if(mode_quick){
 			mode_quick = false;
 			display_date();
+#ifdef PANEL_WEATHER
 			quickWeather();
+#endif
 			pong();
 			return;
 		}
